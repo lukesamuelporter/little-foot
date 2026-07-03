@@ -509,7 +509,7 @@ function App() {
     if (SUPABASE_URL==="YOUR_SUPABASE_URL"){se("setup");sl(false);return}
     try {
       const {data:row}=await sb.from("baby_data").select("data").eq("id",1).single();
-      if(row?.data) sd(row.data);
+      if(row?.data) sd({...DEF,...row.data,profile:{...DEF.profile,...(row.data.profile||{})}});;
     } catch(e){}
     sl(false);
   }
