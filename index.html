@@ -1,586 +1,872 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Little Foot</title>
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Little Foot" />
-  <meta name="theme-color" content="#7c6bdc" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <style>
-    :root {
-      --purple:#7c6bdc; --purple-light:#f0ecff; --purple-dark:#5a4bc0;
-      --bg:#fdfcff; --card:#fff; --border:#e8e4f0;
-      --text:#1a1a2e; --muted:#6b7280; --danger:#e53935;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
-    input,select,textarea,button{font-family:inherit;font-size:15px}
-    input,select,textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fafafa;color:var(--text);-webkit-appearance:none;appearance:none}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple);background:#fff}
-    textarea{resize:vertical;min-height:70px}
-    .header{background:var(--purple);color:#fff;padding:14px 16px 10px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center}
-    .header h1{font-size:20px;font-weight:600}
-    .header .sub{font-size:12px;opacity:.75;margin-top:2px}
-    .refresh-btn{background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px}
-    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom));z-index:100}
-    .nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:4px 10px;border-radius:8px;color:var(--muted);font-size:10px;min-width:56px}
-    .nav-btn .ni{font-size:22px}
-    .nav-btn.active{color:var(--purple)}
-    .content{padding:16px;padding-bottom:90px}
-    .sec-title{font-size:22px;font-weight:600;margin-bottom:16px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
-    label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px;margin-top:12px}
-    label:first-child{margin-top:0}
-    .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    .add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;border:none;background:var(--purple);color:#fff;margin-top:14px}
-    .add-btn:active{background:var(--purple-dark)}
-    .del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;font-size:18px;flex-shrink:0;line-height:1}
-    .tab-btn{background:none;border:none;cursor:pointer;padding:8px 16px;border-radius:20px;font-size:14px;font-family:inherit;color:var(--muted)}
-    .tab-btn.active{background:var(--purple-light);color:var(--purple-dark);font-weight:500}
-    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
-    .b-purple{background:#ece9ff;color:#4a3bbf} .b-teal{background:#d1faf4;color:#085041}
-    .b-coral{background:#fde8e6;color:#a82817} .b-blue{background:#dbeafe;color:#1e40af}
-    .b-amber{background:#fef3c7;color:#92400e} .b-green{background:#dcfce7;color:#15803d}
-    .b-pink{background:#fce7f3;color:#9d174d}  .b-gray{background:#f3f4f6;color:#4b5563}
-    .erow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-    .econtent{flex:1;min-width:0}
-    .etitle{font-weight:500;font-size:15px;margin-bottom:3px}
-    .emeta{font-size:12px;color:var(--muted)}
-    .enotes{font-size:13px;margin-top:5px}
-    .stats{display:flex;gap:10px;margin-bottom:16px}
-    .stat{flex:1;background:var(--purple-light);border-radius:12px;padding:12px;text-align:center}
-    .stat-v{font-size:26px;font-weight:600;color:var(--purple-dark)}
-    .stat-l{font-size:11px;color:var(--muted);margin-top:2px}
-    .word-chip{display:inline-flex;align-items:center;gap:6px;background:var(--purple-light);color:var(--purple-dark);padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;margin:4px}
-    .chip-del{background:none;border:none;cursor:pointer;color:inherit;padding:0;font-size:14px;line-height:1}
-    .more-overlay{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:200;padding:12px 8px}
-    .more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-    .more-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:10px 8px;border-radius:10px;font-size:11px;color:var(--muted);font-family:inherit}
-    .more-btn .ni{font-size:22px}
-    .more-btn.active{background:var(--purple-light);color:var(--purple-dark);font-weight:500}
-    .overlay-bg{position:fixed;inset:0;z-index:150}
-    .saving{position:fixed;top:max(10px,env(safe-area-inset-top));right:14px;font-size:11px;color:rgba(255,255,255,.85);z-index:300}
-    .loading{text-align:center;padding:80px 24px;color:var(--muted)}
-    .loading .emo{font-size:52px;margin-bottom:12px}
-    .setup-box{padding:28px 20px}
-    .setup-box h2{margin-bottom:10px}
-    .setup-box p{color:var(--muted);font-size:14px;line-height:1.7}
-    code{background:#f0ecff;color:var(--purple-dark);padding:2px 6px;border-radius:4px;font-size:13px}
-    .rx-warn{background:#fde8e6;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:13px;color:#a82817;margin-top:8px}
-    .chk-row{display:flex;align-items:center;gap:8px;margin:12px 0}
-    .chk-row input[type=checkbox]{width:20px;height:20px;margin:0;flex-shrink:0}
-    .chk-row label{font-size:15px;color:var(--text);margin:0}
-    .profile-hero{text-align:center;padding:20px 16px;background:var(--purple-light);border-radius:14px;margin-bottom:16px}
-    .profile-hero .emo{font-size:52px}
-    .profile-hero .name{font-size:22px;font-weight:600;margin-top:8px}
-    .profile-hero .age{font-size:14px;color:var(--muted);margin-top:4px}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>Little Foot</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='12' cy='15.5' rx='6' ry='7.5' fill='%23DE9138'/%3E%3Cellipse cx='5.2' cy='6.2' rx='2' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='9.6' cy='3.6' rx='1.9' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='14.4' cy='3.6' rx='1.9' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='18.8' cy='6.2' rx='2' ry='2.6' fill='%23DE9138'/%3E%3C/svg%3E" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Little Foot" />
+<meta name="theme-color" content="#FBF6EC" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --cream:#FBF6EC; --paper:#FFFFFF; --ink:#2C2620; --ink-soft:#7A7167;
+    --line:#ECE2D0; --line-dark:#D8CBB0;
+    --marigold:#DE9138; --marigold-deep:#B96F1F;
+    --moss:#5F7A5A; --plum:#8B7098; --rose:#C0584B; --sky:#6E93A8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--cream);}
+  body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);}
+  input,select,textarea,button{font-family:inherit;}
+
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--cream);display:flex;flex-direction:column;padding-bottom:84px;}
+
+  .app-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;position:sticky;top:0;background:var(--cream);z-index:5;border-bottom:1px solid var(--line);}
+  .brand{display:flex;gap:8px;align-items:center;font-family:'Fraunces',serif;font-weight:600;font-size:19px;}
+  .refresh-btn{width:34px;height:34px;border-radius:50%;background:var(--paper);border:1px solid var(--line);font-size:16px;cursor:pointer;color:var(--ink);}
+
+  .back-row{padding:10px 18px 0;}
+  .back-btn{background:none;border:none;color:var(--marigold-deep);font-weight:700;font-size:14px;cursor:pointer;padding:4px 0;}
+
+  .app-main{flex:1;padding:14px 18px 24px;}
+  .screen-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+  .screen-head h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin:0;}
+
+  .today-hero{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .today-hero h1{font-family:'Fraunces',serif;font-size:25px;margin:0;font-weight:600;}
+  .today-hero p{margin:2px 0 0;color:var(--ink-soft);font-size:14px;}
+
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .stat-label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+  .stat-value{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-top:3px;}
+  .stat-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:10px;}
+  .grow{flex:1;min-width:0;}
+  .item-title{font-weight:700;font-size:15px;}
+  .item-sub{font-size:13px;color:var(--ink-soft);margin-top:1px;}
+  .item-notes{font-size:13px;color:var(--ink);margin-top:9px;border-top:1px solid var(--line);padding-top:9px;line-height:1.4;}
+
+  .list{display:flex;flex-direction:column;}
+
+  .btn{border:none;border-radius:10px;padding:9px 16px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .btn-primary{background:var(--marigold);color:#fff;}
+  .btn-ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
+  .btn-danger{background:var(--rose);color:#fff;}
+  .btn-full{width:100%;margin-top:6px;}
+
+  .icon-btn{width:30px;height:30px;border-radius:50%;border:none;background:var(--cream);cursor:pointer;font-size:14px;flex-shrink:0;color:var(--ink);}
+  .icon-btn.danger{color:var(--rose);}
+
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:capitalize;flex-shrink:0;}
+  .badge-given{background:#E4EEE1;color:var(--moss);}
+  .badge-scheduled{background:#FBEAD3;color:var(--marigold-deep);}
+  .badge-neutral{background:var(--line);color:var(--ink-soft);}
+
+  .empty{text-align:center;padding:36px 12px;color:var(--ink-soft);}
+  .empty-icon{margin-bottom:10px;display:flex;justify-content:center;}
+  .empty p{margin:0;font-size:14px;}
+
+  .sheet-backdrop{position:fixed;inset:0;background:rgba(44,38,32,.42);display:flex;align-items:flex-end;z-index:20;}
+  .sheet{background:var(--paper);width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom));}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .sheet-head h3{font-family:'Fraunces',serif;font-size:18px;margin:0;font-weight:600;}
+  .sheet-body{display:flex;flex-direction:column;gap:13px;}
+  .sheet-actions{display:flex;gap:10px;margin-top:18px;}
+  .sheet-actions .btn{flex:1;}
+
+  .field{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink-soft);font-weight:700;}
+  .field input,.field select,.field textarea{font-size:15px;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:var(--cream);font-weight:400;width:100%;-webkit-appearance:none;appearance:none;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--marigold);border-color:transparent;}
+  .field textarea{resize:vertical;}
+
+  .subtabs{display:flex;gap:8px;margin-bottom:14px;}
+  .subtab{border:1px solid var(--line);background:var(--paper);padding:7px 16px;border-radius:20px;font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
+  .subtab.active{background:var(--marigold);border-color:var(--marigold);color:#fff;}
+
+  .hint-banner{background:#FBEAD3;color:var(--marigold-deep);font-size:13px;font-weight:700;padding:11px 13px;border-radius:12px;margin-bottom:13px;display:flex;align-items:center;gap:6px;}
+  .hint-banner.sleeping{background:#E4EAF0;color:var(--sky);cursor:pointer;}
+
+  .quick-actions{display:flex;gap:8px;flex-shrink:0;}
+  .quick-actions.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid-tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+  .grid-icon{font-size:27px;}
+
+  .journal-photo{width:100%;border-radius:10px;margin-top:9px;display:block;}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--paper);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10;}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 8px;border:none;background:none;color:var(--ink-soft);font-size:11px;font-weight:700;cursor:pointer;}
+  .nav-item.active{color:var(--marigold-deep);}
+  .nav-icon{font-size:19px;}
+</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
 
-// ══════════════════════════════════════════════════════════
-// 🔧 STEP 2: Replace these two lines with your Supabase values
-const SUPABASE_URL      = "https://dlfdefgqqmfvoygissak.supabase.co";
+/* ---------- Supabase ---------- */
+const SUPABASE_URL = "https://dlfdefgqqmfvoygissak.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsZmRlZmdxcW1mdm95Z2lzc2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMDQxNDUsImV4cCI6MjA5ODY4MDE0NX0.bxsOoopi77wo1ttGx3GKUoxRxNWmUBU3VEf6uWGw2wg";
-// ══════════════════════════════════════════════════════════
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-const { useState, useEffect } = React;
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+/* ---------- Defaults ---------- */
 const DEF = {
-  profile:{ name:"", birthdate:"", bloodType:"", notes:"" },
-  growth:[], health:[], feeding:[], sleep:[],
-  milestones:[], words:[], journal:[], diapers:[], symptoms:[], vaccines:[],
+  profile: { name: "", dob: "", bloodType: "", parent1: "", parent2: "", units: "imperial" },
+  growth: [],
+  health: [],
+  nursing: [],
+  solids: [],
+  sleep: [],
+  activeSleep: null,
+  milestones: [],
+  words: [],
+  journal: [],
+  diapers: [],
+  symptoms: [],
+  vaccines: [],
 };
 
-const fmtDate = d => d ? new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
-const today   = () => new Date().toISOString().slice(0,10);
-const nowT    = () => new Date().toTimeString().slice(0,5);
-const uid     = () => Date.now() + Math.random();
-const dur = (s,e) => {
-  if (!s||!e) return null;
-  let m = (new Date("2000-01-01T"+e)-new Date("2000-01-01T"+s))/60000;
-  if (m<=0) m+=1440;
-  return `${Math.floor(m/60)}h ${Math.round(m%60)}m`;
-};
-
-// ── Mini UI ───────────────────────────────────────────────
-const Lbl = ({c}) => <label>{c}</label>;
-const Inp = ({label,...p}) => <><Lbl c={label}/><input {...p}/></>;
-const Sel = ({label,children,...p}) => <><Lbl c={label}/><select {...p}>{children}</select></>;
-const Txt = ({label,...p}) => <><Lbl c={label}/><textarea {...p}/></>;
-const Del = ({on}) => <button className="del-btn" onClick={on}>✕</button>;
-const Go  = ({on,c="Save entry"}) => <button className="add-btn" onClick={on}>{c}</button>;
-const Bdg = ({cls,c}) => <span className={`badge ${cls}`}>{c}</span>;
-
-// ── Profile ───────────────────────────────────────────────
-function ProfileSection({data, upd}) {
-  const [f,sf] = useState(data.profile);
-  const ch = k => e => sf(x=>({...x,[k]:e.target.value}));
-  const age = () => {
-    if (!f.birthdate) return null;
-    const bd=new Date(f.birthdate),now=new Date();
-    let m=(now.getFullYear()-bd.getFullYear())*12+(now.getMonth()-bd.getMonth());
-    if (m<1){const d=Math.floor((now-bd)/86400000);return `${d} day${d!==1?"s":""} old`}
-    if (m<24) return `${m} month${m!==1?"s":""} old`;
-    return `${Math.floor(m/12)}y ${m%12}m old`;
-  };
-  return <div>
-    {f.name&&<div className="profile-hero">
-      <div className="emo">👶</div>
-      <div className="name">{f.name}</div>
-      {age()&&<div className="age">{age()}</div>}
-    </div>}
-    <div className="card">
-      <Inp label="Baby's name" value={f.name} onChange={ch("name")} placeholder="e.g. Lily"/>
-      <Inp label="Date of birth" type="date" value={f.birthdate} onChange={ch("birthdate")}/>
-      <Sel label="Blood type" value={f.bloodType} onChange={ch("bloodType")}>
-        <option value="">Unknown</option>
-        {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t=><option key={t}>{t}</option>)}
-      </Sel>
-      <Txt label="Notes (allergies, special needs…)" value={f.notes} onChange={ch("notes")}/>
-      <Go on={()=>upd("profile",f)} c="Save profile"/>
-    </div>
-  </div>;
+function deepMerge(def, loaded) {
+  if (!loaded || typeof loaded !== "object") return def;
+  const out = { ...def };
+  for (const k of Object.keys(def)) {
+    if (Array.isArray(def[k])) out[k] = Array.isArray(loaded[k]) ? loaded[k] : def[k];
+    else if (def[k] && typeof def[k] === "object") out[k] = { ...def[k], ...(loaded[k] || {}) };
+    else out[k] = k in loaded ? loaded[k] : def[k];
+  }
+  return out;
 }
 
-// ── Growth ────────────────────────────────────────────────
-function GrowthSection({data, upd}) {
-  const [f,sf]=useState({date:today(),weight:"",height:"",head:"",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{
-    if(!f.date) return;
-    upd("growth",[{...f,id:uid()},...data.growth]);
-    sf({date:today(),weight:"",height:"",head:"",notes:""});
-  };
-  return <div>
-    <div className="card">
-      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Weight (lbs)" type="number" step="0.1" value={f.weight} onChange={ch("weight")}/></div>
-      <div className="g2"><Inp label="Height (in)" type="number" step="0.1" value={f.height} onChange={ch("height")}/><Inp label="Head circ. (in)" type="number" step="0.1" value={f.head} onChange={ch("head")}/></div>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Go on={add} c="Add measurement"/>
-    </div>
-    {data.growth.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div className="etitle">{fmtDate(e.date)}</div>
-          <div className="emeta" style={{display:"flex",gap:12,marginTop:4}}>
-            {e.weight&&<span>⚖️ {e.weight} lbs</span>}
-            {e.height&&<span>📏 {e.height} in</span>}
-            {e.head&&<span>🔵 {e.head} in</span>}
-          </div>
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("growth",data.growth.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+
+function fmtDate(d) {
+  if (!d) return "";
+  const dt = new Date(d + (d.length <= 10 ? "T00:00:00" : ""));
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function fmtTime(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const ap = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
+}
+function ageString(dob) {
+  if (!dob) return "";
+  const birth = new Date(dob + "T00:00:00");
+  const now = new Date();
+  let days = Math.floor((now - birth) / 86400000);
+  if (days < 0) {
+    const untilDays = Math.abs(days);
+    return `due in ${untilDays} day${untilDays === 1 ? "" : "s"}`;
+  }
+  if (days < 60) {
+    const weeks = Math.floor(days / 7);
+    const rem = days % 7;
+    return `${weeks}w ${rem}d old`;
+  }
+  const months = Math.floor(days / 30.44);
+  return `${months} month${months === 1 ? "" : "s"} old`;
+}
+function minutesBetween(start, end) {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60;
+  return mins;
+}
+function durLabel(mins) {
+  if (mins == null) return "";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-// ── Health ────────────────────────────────────────────────
-function HealthSection({data, upd}) {
-  const [f,sf]=useState({date:today(),type:"checkup",doctor:"",notes:"",results:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{
-    upd("health",[{...f,id:uid()},...data.health]);
-    sf({date:today(),type:"checkup",doctor:"",notes:"",results:""});
-  };
-  const tc={checkup:"b-blue",urgent:"b-coral",specialist:"b-purple",other:"b-gray"};
-  return <div>
-    <div className="card">
-      <div className="g2">
-        <Inp label="Date" type="date" value={f.date} onChange={ch("date")}/>
-        <Sel label="Type" value={f.type} onChange={ch("type")}>
-          <option value="checkup">Well-child</option><option value="urgent">Urgent/sick</option>
-          <option value="specialist">Specialist</option><option value="other">Other</option>
-        </Sel>
-      </div>
-      <Inp label="Doctor / clinic" value={f.doctor} onChange={ch("doctor")}/>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Txt label="Results / follow-up" value={f.results} onChange={ch("results")} style={{minHeight:50}}/>
-      <Go on={add} c="Add visit"/>
+/* ---------- Small UI atoms ---------- */
+function Foot({ size = 18, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
+      <ellipse cx="12" cy="15.5" rx="6" ry="7.5" />
+      <ellipse cx="5.2" cy="6.2" rx="2" ry="2.6" transform="rotate(-18 5.2 6.2)" />
+      <ellipse cx="9.6" cy="3.6" rx="1.9" ry="2.6" transform="rotate(-6 9.6 3.6)" />
+      <ellipse cx="14.4" cy="3.6" rx="1.9" ry="2.6" transform="rotate(6 14.4 3.6)" />
+      <ellipse cx="18.8" cy="6.2" rx="2" ry="2.6" transform="rotate(18 18.8 6.2)" />
+    </svg>
+  );
+}
+function Btn({ children, variant = "primary", onClick, disabled, type = "button", full }) {
+  return (
+    <button type={type} disabled={disabled} onClick={onClick} className={`btn btn-${variant}${full ? " btn-full" : ""}`}>
+      {children}
+    </button>
+  );
+}
+function IconBtn({ children, onClick, variant = "" }) {
+  return (
+    <button type="button" onClick={onClick} className={`icon-btn ${variant}`}>
+      {children}
+    </button>
+  );
+}
+function Card({ children, onClick }) {
+  return <div className="card" onClick={onClick}>{children}</div>;
+}
+function Badge({ children, tone = "neutral" }) {
+  return <span className={`badge badge-${tone}`}>{children}</span>;
+}
+function EmptyState({ icon, text }) {
+  return (
+    <div className="empty">
+      <div className="empty-icon">{icon || <Foot size={30} color="var(--line-dark)" />}</div>
+      <p>{text}</p>
     </div>
-    {data.health.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
-            <span className="etitle">{fmtDate(e.date)}</span>
-            <Bdg cls={tc[e.type]||"b-gray"} c={e.type}/>
-          </div>
-          {e.doctor&&<div className="emeta">👨‍⚕️ {e.doctor}</div>}
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-          {e.results&&<div className="enotes" style={{color:"var(--muted)"}}>Results: {e.results}</div>}
-        </div>
-        <Del on={()=>upd("health",data.health.filter(x=>x.id!==e.id))}/>
+  );
+}
+function Sheet({ onClose, children }) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        {children}
       </div>
-    </div>)}
-  </div>;
+    </div>
+  );
 }
 
-// ── Feeding ───────────────────────────────────────────────
-function FeedingSection({data, upd}) {
-  const [tab,st]=useState("nursing");
-  const [nf,sn]=useState({date:today(),time:nowT(),dur:"",side:"left",notes:""});
-  const [ff,sf]=useState({date:today(),food:"",reaction:"none",notes:""});
-  const nch=k=>e=>sn(x=>({...x,[k]:e.target.value}));
-  const fch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const addN=()=>{upd("feeding",[{...nf,type:"nursing",id:uid()},...data.feeding]);sn({date:today(),time:nowT(),dur:"",side:"left",notes:""})};
-  const addF=()=>{if(!ff.food)return;upd("feeding",[{...ff,type:"solid",id:uid()},...data.feeding]);sf({date:today(),food:"",reaction:"none",notes:""})};
-  const rc={none:"b-gray",good:"b-green",mild:"b-amber",allergic:"b-coral"};
-  return <div>
-    <div style={{display:"flex",gap:8,marginBottom:16}}>
-      <button className={`tab-btn ${tab==="nursing"?"active":""}`} onClick={()=>st("nursing")}>🍼 Nursing</button>
-      <button className={`tab-btn ${tab==="solids"?"active":""}`} onClick={()=>st("solids")}>🥣 Solids</button>
-    </div>
-    {tab==="nursing"?<div className="card">
-      <div className="g2"><Inp label="Date" type="date" value={nf.date} onChange={nch("date")}/><Inp label="Time" type="time" value={nf.time} onChange={nch("time")}/></div>
-      <div className="g2"><Inp label="Duration (min)" type="number" value={nf.dur} onChange={nch("dur")}/><Sel label="Side" value={nf.side} onChange={nch("side")}><option value="left">Left</option><option value="right">Right</option><option value="both">Both</option><option value="bottle">Bottle</option></Sel></div>
-      <Txt label="Notes" value={nf.notes} onChange={nch("notes")} style={{minHeight:50}}/>
-      <Go on={addN} c="Log nursing session"/>
-    </div>:<div className="card">
-      <Inp label="Food introduced" value={ff.food} onChange={fch("food")} placeholder="e.g. banana, sweet potato…"/>
-      <Inp label="Date" type="date" value={ff.date} onChange={fch("date")}/>
-      <Sel label="Reaction" value={ff.reaction} onChange={fch("reaction")}>
-        <option value="none">No reaction</option><option value="good">Loved it! 😍</option>
-        <option value="mild">Mild reaction</option><option value="allergic">Allergic ⚠️</option>
-      </Sel>
-      {ff.reaction==="allergic"&&<div className="rx-warn">⚠️ If this is serious, call your doctor immediately.</div>}
-      <Txt label="Notes" value={ff.notes} onChange={fch("notes")} style={{minHeight:50}}/>
-      <Go on={addF} c="Log food"/>
-    </div>}
-    {data.feeding.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:3}}>
-            <span className="etitle">{e.type==="nursing"?`🍼 ${e.side}`:`🥣 ${e.food}`}</span>
-            {e.reaction&&e.reaction!=="none"&&<Bdg cls={rc[e.reaction]} c={e.reaction}/>}
-          </div>
-          <div className="emeta">{fmtDate(e.date)}{e.time?` · ${e.time}`:""}{e.dur?` · ${e.dur} min`:""}</div>
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("feeding",data.feeding.filter(x=>x.id!==e.id))}/>
+/* ---------- Generic field + form ---------- */
+function FieldInput({ field, value, onChange }) {
+  const { key, type, options, label } = field;
+  if (type === "textarea")
+    return <textarea rows={3} value={value || ""} onChange={(e) => onChange(key, e.target.value)} />;
+  if (type === "select")
+    return (
+      <select value={value || ""} onChange={(e) => onChange(key, e.target.value)}>
+        <option value="">Select…</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    );
+  return (
+    <input
+      type={type}
+      value={value || ""}
+      onChange={(e) => onChange(key, e.target.value)}
+      placeholder={type === "number" ? "0" : ""}
+    />
+  );
+}
+function EntryForm({ fields, initial, title, onCancel, onSave }) {
+  const [vals, setVals] = useState(initial || {});
+  const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
+  return (
+    <>
+      <div className="sheet-head">
+        <h3>{title}</h3>
+        <IconBtn onClick={onCancel}>✕</IconBtn>
       </div>
-    </div>)}
-  </div>;
+      <div className="sheet-body">
+        {fields.map((f) => (
+          <label className="field" key={f.key}>
+            <span>{f.label}{f.required ? " *" : ""}</span>
+            <FieldInput field={f} value={vals[f.key]} onChange={set} />
+          </label>
+        ))}
+      </div>
+      <div className="sheet-actions">
+        <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+        <Btn
+          onClick={() => {
+            if (fields.some((f) => f.required && !vals[f.key])) {
+              alert("Please fill in the required fields.");
+              return;
+            }
+            onSave({ ...vals, id: vals.id || uid() });
+          }}
+        >
+          Save
+        </Btn>
+      </div>
+    </>
+  );
 }
 
-// ── Sleep ─────────────────────────────────────────────────
-function SleepSection({data, upd}) {
-  const [f,sf]=useState({date:today(),start:"",end:"",type:"night",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{upd("sleep",[{...f,id:uid()},...data.sleep]);sf({date:today(),start:"",end:"",type:"night",notes:""})};
-  const d=dur(f.start,f.end);
-  return <div>
-    <div className="card">
-      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Sel label="Type" value={f.type} onChange={ch("type")}><option value="night">🌙 Night</option><option value="nap">💤 Nap</option></Sel></div>
-      <div className="g2"><Inp label="Sleep time" type="time" value={f.start} onChange={ch("start")}/><Inp label="Wake time" type="time" value={f.end} onChange={ch("end")}/></div>
-      {d&&<div style={{fontSize:13,color:"var(--muted)",margin:"6px 0"}}>Duration: <strong>{d}</strong></div>}
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Go on={add} c="Log sleep"/>
-    </div>
-    {data.sleep.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
-            <span className="etitle">{e.type==="night"?"🌙 Night":"💤 Nap"}</span>
-            {dur(e.start,e.end)&&<Bdg cls="b-blue" c={dur(e.start,e.end)}/>}
-          </div>
-          <div className="emeta">{fmtDate(e.date)}{e.start?` · ${e.start} → ${e.end}`:""}</div>
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("sleep",data.sleep.filter(x=>x.id!==e.id))}/>
+/* ---------- Generic list section (config-driven) ---------- */
+function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle, renderSub, tone, onAdd, onDelete, emptyText }) {
+  const [showForm, setShowForm] = useState(false);
+  const sorted = useMemo(
+    () => [...items].sort((a, b) => String(b[sortKey] || "").localeCompare(String(a[sortKey] || ""))),
+    [items, sortKey]
+  );
+  return (
+    <div className="screen">
+      <div className="screen-head">
+        <h2>{icon} {title}</h2>
+        <Btn onClick={() => setShowForm(true)}>+ Add</Btn>
       </div>
-    </div>)}
-  </div>;
+      {sorted.length === 0 && <EmptyState text={emptyText} />}
+      <div className="list">
+        {sorted.map((item) => (
+          <Card key={item.id}>
+            <div className="row">
+              <div className="grow">
+                <div className="item-title">{renderTitle(item)}</div>
+                <div className="item-sub">{renderSub ? renderSub(item) : fmtDate(item[sortKey])}</div>
+              </div>
+              {tone && <Badge tone={tone(item)}>{tone(item)}</Badge>}
+              <IconBtn variant="danger" onClick={() => onDelete(item.id)}>✕</IconBtn>
+            </div>
+            {item.notes && <div className="item-notes">{item.notes}</div>}
+          </Card>
+        ))}
+      </div>
+      {showForm && (
+        <Sheet onClose={() => setShowForm(false)}>
+          <EntryForm
+            fields={fields}
+            title={`Add ${title}`}
+            onCancel={() => setShowForm(false)}
+            onSave={(v) => { onAdd(v); setShowForm(false); }}
+          />
+        </Sheet>
+      )}
+    </div>
+  );
 }
 
-// ── Milestones ────────────────────────────────────────────
-function MilestonesSection({data, upd}) {
-  const [f,sf]=useState({date:today(),milestone:"",category:"motor",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{if(!f.milestone)return;upd("milestones",[{...f,id:uid()},...data.milestones]);sf({date:today(),milestone:"",category:"motor",notes:""})};
-  const cc={motor:"b-teal",social:"b-pink",cognitive:"b-purple",communication:"b-blue",other:"b-gray"};
-  return <div>
-    <div className="card">
-      <Inp label="Milestone" value={f.milestone} onChange={ch("milestone")} placeholder="e.g. First smile, rolled over…"/>
-      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Sel label="Category" value={f.category} onChange={ch("category")}><option value="motor">Motor</option><option value="social">Social</option><option value="cognitive">Cognitive</option><option value="communication">Communication</option><option value="other">Other</option></Sel></div>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Go on={add} c="Add milestone"/>
-    </div>
-    {data.milestones.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
-            <span className="etitle">⭐ {e.milestone}</span>
-            <Bdg cls={cc[e.category]||"b-gray"} c={e.category}/>
-          </div>
-          <div className="emeta">{fmtDate(e.date)}</div>
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("milestones",data.milestones.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
-}
-
-// ── Words ─────────────────────────────────────────────────
-function WordsSection({data, upd}) {
-  const [f,sf]=useState({date:today(),word:"",context:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{if(!f.word)return;upd("words",[{...f,id:uid()},...data.words]);sf({date:today(),word:"",context:""})};
-  return <div>
-    <div className="card">
-      <div className="g2"><Inp label="Word / sound" value={f.word} onChange={ch("word")} placeholder="mama, dada…"/><Inp label="Date first said" type="date" value={f.date} onChange={ch("date")}/></div>
-      <Txt label="Context / story" value={f.context} onChange={ch("context")} style={{minHeight:60}}/>
-      <Go on={add} c="Add word"/>
-    </div>
-    {data.words.length>0&&<>
-      <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>💬 {data.words.length} word{data.words.length!==1?"s":""} so far</div>
-      <div style={{display:"flex",flexWrap:"wrap",marginBottom:16}}>
-        {data.words.map(e=><span className="word-chip" key={e.id}>
-          {e.word} <span style={{fontSize:11,opacity:.7}}>{fmtDate(e.date)}</span>
-          <button className="chip-del" onClick={()=>upd("words",data.words.filter(x=>x.id!==e.id))}>✕</button>
-        </span>)}
-      </div>
-      {data.words.filter(w=>w.context).map(e=><div className="card" key={e.id+"c"}>
-        <div className="etitle">💬 "{e.word}" <span style={{fontWeight:400,color:"var(--muted)",fontSize:13}}>— {fmtDate(e.date)}</span></div>
-        <div className="enotes" style={{marginTop:6}}>{e.context}</div>
-      </div>)}
-    </>}
-  </div>;
-}
-
-// ── Journal ───────────────────────────────────────────────
-function JournalSection({data, upd}) {
-  const [f,sf]=useState({date:today(),title:"",body:"",author:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{if(!f.body)return;upd("journal",[{...f,id:uid()},...data.journal]);sf({date:today(),title:"",body:"",author:""})};
-  return <div>
-    <div className="card">
-      <div className="g2"><Inp label="Title (optional)" value={f.title} onChange={ch("title")} placeholder="e.g. First bath"/><Inp label="Written by" value={f.author} onChange={ch("author")} placeholder="Mom / Dad"/></div>
-      <Inp label="Date" type="date" value={f.date} onChange={ch("date")}/>
-      <Txt label="Entry" value={f.body} onChange={ch("body")} style={{minHeight:130}} placeholder="Write a memory…"/>
-      <Go on={add} c="Add entry"/>
-    </div>
-    {data.journal.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
-            {e.title&&<span className="etitle">📓 {e.title}</span>}
-            <span className="emeta">{fmtDate(e.date)}</span>
-            {e.author&&<Bdg cls="b-pink" c={e.author}/>}
-          </div>
-          <div style={{fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{e.body}</div>
-        </div>
-        <Del on={()=>upd("journal",data.journal.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
-}
-
-// ── Diapers ───────────────────────────────────────────────
-function DiapersSection({data, upd}) {
-  const [f,sf]=useState({date:today(),time:nowT(),type:"wet",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{upd("diapers",[{...f,id:uid()},...data.diapers]);sf({date:today(),time:nowT(),type:"wet",notes:""})};
-  const tc={wet:"b-blue",dirty:"b-amber",both:"b-coral",dry:"b-gray"};
-  const todayCount=data.diapers.filter(d=>d.date===today()).length;
-  return <div>
-    <div className="stats">
-      <div className="stat"><div className="stat-v">{todayCount}</div><div className="stat-l">Today</div></div>
-      <div className="stat"><div className="stat-v">{data.diapers.length}</div><div className="stat-l">Total logged</div></div>
-    </div>
-    <div className="card">
-      <div className="g3"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Time" type="time" value={f.time} onChange={ch("time")}/><Sel label="Type" value={f.type} onChange={ch("type")}><option value="wet">Wet</option><option value="dirty">Dirty</option><option value="both">Both</option><option value="dry">Dry</option></Sel></div>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:40}}/>
-      <Go on={add} c="🧷 Log diaper"/>
-    </div>
-    {data.diapers.slice(0,40).map(e=><div className="card" key={e.id} style={{padding:"10px 14px"}}>
-      <div className="erow">
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <Bdg cls={tc[e.type]} c={e.type}/>
-          <span className="emeta">{fmtDate(e.date)} · {e.time}</span>
-          {e.notes&&<span className="emeta">{e.notes}</span>}
-        </div>
-        <Del on={()=>upd("diapers",data.diapers.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
-}
-
-// ── Symptoms ──────────────────────────────────────────────
-function SymptomsSection({data, upd}) {
-  const [f,sf]=useState({date:today(),time:nowT(),symptom:"",severity:"mild",temp:"",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{if(!f.symptom)return;upd("symptoms",[{...f,id:uid()},...data.symptoms]);sf({date:today(),time:nowT(),symptom:"",severity:"mild",temp:"",notes:""})};
-  const sc={mild:"b-amber",moderate:"b-coral",severe:"b-coral"};
-  return <div>
-    <div className="card">
-      <Inp label="Symptom" value={f.symptom} onChange={ch("symptom")} placeholder="fussiness, runny nose, fever…"/>
-      <div className="g3"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Time" type="time" value={f.time} onChange={ch("time")}/><Inp label="Temp (°F)" type="number" step="0.1" value={f.temp} onChange={ch("temp")}/></div>
-      <Sel label="Severity" value={f.severity} onChange={ch("severity")}><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></Sel>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Go on={add} c="Log symptom"/>
-    </div>
-    {data.symptoms.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
-            <span className="etitle">🌡️ {e.symptom}</span><Bdg cls={sc[e.severity]||"b-amber"} c={e.severity}/>
-          </div>
-          <div className="emeta">{fmtDate(e.date)} · {e.time}{e.temp?` · ${e.temp}°F`:""}</div>
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("symptoms",data.symptoms.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
-}
-
-// ── Vaccines ──────────────────────────────────────────────
-function VaccinesSection({data, upd}) {
-  const [f,sf]=useState({date:today(),name:"",nextDue:"",given:true,reaction:"",notes:""});
-  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
-  const add=()=>{if(!f.name)return;upd("vaccines",[{...f,id:uid()},...data.vaccines]);sf({date:today(),name:"",nextDue:"",given:true,reaction:"",notes:""})};
-  const vx=["Hepatitis B","RV (Rotavirus)","DTaP","Hib","PCV13","IPV","Flu","MMR","Varicella","Hepatitis A","MenACWY","HPV","Tdap","Other"];
-  return <div>
-    <div className="card">
-      <Sel label="Vaccine" value={f.name} onChange={ch("name")}><option value="">Select…</option>{vx.map(v=><option key={v}>{v}</option>)}</Sel>
-      <div className="g2"><Inp label="Date given" type="date" value={f.date} onChange={ch("date")}/><Inp label="Next dose due" type="date" value={f.nextDue} onChange={ch("nextDue")}/></div>
-      <div className="chk-row"><input type="checkbox" id="vgiven" checked={f.given} onChange={e=>sf(x=>({...x,given:e.target.checked}))}/><label htmlFor="vgiven">Vaccine was administered</label></div>
-      <Inp label="Reaction (if any)" value={f.reaction} onChange={ch("reaction")}/>
-      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
-      <Go on={add} c="Add vaccine"/>
-    </div>
-    {data.vaccines.map(e=><div className="card" key={e.id}>
-      <div className="erow">
-        <div className="econtent">
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
-            <span className="etitle">💉 {e.name}</span><Bdg cls={e.given?"b-teal":"b-amber"} c={e.given?"given":"scheduled"}/>
-          </div>
-          <div className="emeta">{fmtDate(e.date)}{e.nextDue?` · Next: ${fmtDate(e.nextDue)}`:""}</div>
-          {e.reaction&&<div className="enotes" style={{color:"#a82817"}}>⚠️ Reaction: {e.reaction}</div>}
-          {e.notes&&<div className="enotes">{e.notes}</div>}
-        </div>
-        <Del on={()=>upd("vaccines",data.vaccines.filter(x=>x.id!==e.id))}/>
-      </div>
-    </div>)}
-  </div>;
-}
-
-// ── App Shell ─────────────────────────────────────────────
-const PRIMARY = [
-  {id:"feeding",l:"Feeding",i:"🍼"},
-  {id:"sleep",l:"Sleep",i:"😴"},
-  {id:"diapers",l:"Diapers",i:"🧷"},
-  {id:"journal",l:"Journal",i:"📓"},
-  {id:"more",l:"More",i:"☰"},
+/* ---------- Field configs ---------- */
+const GROWTH_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "weight", label: "Weight (lb)", type: "number" },
+  { key: "height", label: "Height (in)", type: "number" },
+  { key: "headCirc", label: "Head circumference (in)", type: "number" },
+  { key: "notes", label: "Notes", type: "textarea" },
 ];
-const MORE_SECS = [
-  {id:"profile",l:"Profile",i:"👶"},
-  {id:"growth",l:"Growth",i:"📏"},
-  {id:"health",l:"Health",i:"🩺"},
-  {id:"milestones",l:"Milestones",i:"⭐"},
-  {id:"words",l:"Words",i:"💬"},
-  {id:"symptoms",l:"Symptoms",i:"🌡️"},
-  {id:"vaccines",l:"Vaccines",i:"💉"},
+const HEALTH_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "type", label: "Visit type", type: "select", options: ["Checkup", "Urgent", "Specialist"] },
+  { key: "doctor", label: "Doctor", type: "text" },
+  { key: "notes", label: "Notes / results", type: "textarea" },
+];
+const NURSING_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "time", label: "Time", type: "time", required: true },
+  { key: "duration", label: "Duration (min)", type: "number" },
+  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both"] },
+];
+const SOLIDS_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "food", label: "Food", type: "text", required: true },
+  { key: "reaction", label: "Reaction", type: "select", options: ["None", "Mild", "Moderate", "Strong"] },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
+const SLEEP_FIELDS = [
+  { key: "type", label: "Type", type: "select", options: ["Nap", "Night"], required: true },
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "start", label: "Start time", type: "time", required: true },
+  { key: "end", label: "End time", type: "time" },
+];
+const MILESTONE_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "category", label: "Category", type: "select", options: ["Motor", "Social", "Cognitive", "Communication"] },
+  { key: "title", label: "Milestone", type: "text", required: true },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
+const WORDS_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "word", label: "Word", type: "text", required: true },
+  { key: "context", label: "Context / story", type: "textarea" },
+];
+const DIAPER_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "time", label: "Time", type: "time", required: true },
+  { key: "type", label: "Type", type: "select", options: ["Wet", "Dirty", "Both"], required: true },
+];
+const SYMPTOM_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "type", label: "Type", type: "select", options: ["Fussy", "Fever", "Teething", "Rash", "Other"] },
+  { key: "severity", label: "Severity", type: "select", options: ["Mild", "Moderate", "Severe"] },
+  { key: "temp", label: "Temperature (°F)", type: "number" },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
+const VACCINE_FIELDS = [
+  { key: "name", label: "Vaccine", type: "text", required: true },
+  { key: "scheduled", label: "Scheduled date", type: "date" },
+  { key: "given", label: "Date given", type: "date" },
+  { key: "notes", label: "Notes", type: "textarea" },
 ];
 
+/* ---------- Profile ---------- */
+function ProfileScreen({ profile, onSave }) {
+  const [vals, setVals] = useState(profile);
+  useEffect(() => setVals(profile), [profile]);
+  const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>👤 Profile</h2></div>
+      <div className="card">
+        <label className="field"><span>Baby's name</span><input value={vals.name || ""} onChange={(e) => set("name", e.target.value)} /></label>
+        <label className="field"><span>Date of birth</span><input type="date" value={vals.dob || ""} onChange={(e) => set("dob", e.target.value)} /></label>
+        <label className="field"><span>Blood type</span><input value={vals.bloodType || ""} onChange={(e) => set("bloodType", e.target.value)} /></label>
+        <label className="field"><span>Parent 1 name</span><input value={vals.parent1 || ""} onChange={(e) => set("parent1", e.target.value)} /></label>
+        <label className="field"><span>Parent 2 name</span><input value={vals.parent2 || ""} onChange={(e) => set("parent2", e.target.value)} /></label>
+        <label className="field">
+          <span>Units</span>
+          <select value={vals.units || "imperial"} onChange={(e) => set("units", e.target.value)}>
+            <option value="imperial">Imperial (lb / in)</option>
+            <option value="metric">Metric (kg / cm)</option>
+          </select>
+        </label>
+        <Btn full onClick={() => onSave(vals)}>Save profile</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- More menu ---------- */
+const MORE_ITEMS = [
+  { key: "growth", icon: "📏", label: "Growth" },
+  { key: "health", icon: "🩺", label: "Health" },
+  { key: "milestones", icon: "⭐", label: "Milestones" },
+  { key: "words", icon: "💬", label: "First words" },
+  { key: "journal", icon: "📓", label: "Journal" },
+  { key: "symptoms", icon: "🤒", label: "Symptoms" },
+  { key: "vaccines", icon: "💉", label: "Vaccines" },
+  { key: "profile", icon: "👤", label: "Profile" },
+];
+function MoreScreen({ setView }) {
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>More</h2></div>
+      <div className="grid">
+        {MORE_ITEMS.map((m) => (
+          <button key={m.key} className="grid-tile" onClick={() => setView(m.key)}>
+            <span className="grid-icon">{m.icon}</span>
+            <span>{m.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Journal (custom: author select + photo) ---------- */
+function JournalScreen({ items, profile, onAdd, onDelete }) {
+  const [showForm, setShowForm] = useState(false);
+  const [vals, setVals] = useState({ date: "", author: "", text: "", photo: null });
+  const sorted = useMemo(() => [...items].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))), [items]);
+  const authors = [profile.parent1 || "Parent 1", profile.parent2 || "Parent 2"];
+
+  function handlePhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 700 / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setVals((s) => ({ ...s, photo: canvas.toDataURL("image/jpeg", 0.7) }));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="screen">
+      <div className="screen-head">
+        <h2>📓 Journal</h2>
+        <Btn onClick={() => { setVals({ date: new Date().toISOString().slice(0, 10), author: "", text: "", photo: null }); setShowForm(true); }}>+ Add</Btn>
+      </div>
+      {sorted.length === 0 && <EmptyState text="No journal entries yet. Capture your first memory together." />}
+      <div className="list">
+        {sorted.map((item) => (
+          <Card key={item.id}>
+            <div className="row">
+              <div className="grow">
+                <div className="item-title">{item.author || "—"}</div>
+                <div className="item-sub">{fmtDate(item.date)}</div>
+              </div>
+              <IconBtn variant="danger" onClick={() => onDelete(item.id)}>✕</IconBtn>
+            </div>
+            {item.photo && <img src={item.photo} className="journal-photo" alt="" />}
+            {item.text && <div className="item-notes">{item.text}</div>}
+          </Card>
+        ))}
+      </div>
+      {showForm && (
+        <Sheet onClose={() => setShowForm(false)}>
+          <div className="sheet-head"><h3>Add journal entry</h3><IconBtn onClick={() => setShowForm(false)}>✕</IconBtn></div>
+          <div className="sheet-body">
+            <label className="field"><span>Date</span><input type="date" value={vals.date} onChange={(e) => setVals((s) => ({ ...s, date: e.target.value }))} /></label>
+            <label className="field">
+              <span>Who's writing?</span>
+              <select value={vals.author} onChange={(e) => setVals((s) => ({ ...s, author: e.target.value }))}>
+                <option value="">Select…</option>
+                {authors.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+            <label className="field"><span>Entry</span><textarea rows={4} value={vals.text} onChange={(e) => setVals((s) => ({ ...s, text: e.target.value }))} /></label>
+            <label className="field"><span>Photo (optional)</span><input type="file" accept="image/*" onChange={handlePhoto} /></label>
+            {vals.photo && <img src={vals.photo} className="journal-photo" alt="" />}
+          </div>
+          <div className="sheet-actions">
+            <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
+            <Btn onClick={() => { if (!vals.text) return alert("Please write something first."); onAdd({ ...vals, id: uid() }); setShowForm(false); }}>Save</Btn>
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Sleep ---------- */
+function SleepScreen({ items, active, onAdd, onDelete, onStart, onStop }) {
+  const sorted = useMemo(() => [...items].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))), [items]);
+  const [showForm, setShowForm] = useState(false);
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>😴 Sleep</h2><Btn onClick={() => setShowForm(true)}>+ Add</Btn></div>
+
+      {active ? (
+        <Card>
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">Currently asleep ({active.type})</div>
+              <div className="item-sub">Started {fmtTime(active.start)}</div>
+            </div>
+            <Btn variant="danger" onClick={onStop}>Wake up</Btn>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <div className="row">
+            <div className="grow"><div className="item-title">Not currently sleeping</div></div>
+            <div className="quick-actions">
+              <Btn variant="ghost" onClick={() => onStart("Nap")}>Start nap</Btn>
+              <Btn variant="ghost" onClick={() => onStart("Night")}>Start night sleep</Btn>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {sorted.length === 0 && <EmptyState text="No sleep logged yet." />}
+      <div className="list">
+        {sorted.map((item) => {
+          const mins = minutesBetween(item.start, item.end);
+          return (
+            <Card key={item.id}>
+              <div className="row">
+                <div className="grow">
+                  <div className="item-title">{item.type} · {fmtTime(item.start)}{item.end ? ` – ${fmtTime(item.end)}` : ""}</div>
+                  <div className="item-sub">{fmtDate(item.date)}{mins != null ? ` · ${durLabel(mins)}` : ""}</div>
+                </div>
+                <IconBtn variant="danger" onClick={() => onDelete(item.id)}>✕</IconBtn>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+      {showForm && (
+        <Sheet onClose={() => setShowForm(false)}>
+          <EntryForm fields={SLEEP_FIELDS} title="Add sleep" onCancel={() => setShowForm(false)} onSave={(v) => { onAdd(v); setShowForm(false); }} />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Feeding (nursing + solids sub-tabs) ---------- */
+function FeedingScreen({ nursing, solids, onAddNursing, onDeleteNursing, onAddSolid, onDeleteSolid }) {
+  const [sub, setSub] = useState("nursing");
+  const lastNursing = useMemo(
+    () => [...nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0],
+    [nursing]
+  );
+  const nextSide = lastNursing?.side === "Left" ? "Right" : lastNursing?.side === "Right" ? "Left" : null;
+
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>🍼 Feeding</h2></div>
+      <div className="subtabs">
+        <button className={sub === "nursing" ? "subtab active" : "subtab"} onClick={() => setSub("nursing")}>Nursing</button>
+        <button className={sub === "solids" ? "subtab active" : "subtab"} onClick={() => setSub("solids")}>Solid foods</button>
+      </div>
+
+      {sub === "nursing" && (
+        <>
+          {nextSide && (
+            <div className="hint-banner"><Foot size={14} /> Last side was {lastNursing.side} — try <strong>{nextSide}</strong> next.</div>
+          )}
+          <ListSection
+            title="Nursing" icon="" items={nursing} fields={NURSING_FIELDS}
+            renderTitle={(i) => `${i.side || "Feeding"}${i.duration ? ` · ${i.duration} min` : ""}`}
+            renderSub={(i) => `${fmtDate(i.date)} · ${fmtTime(i.time)}`}
+            onAdd={onAddNursing} onDelete={onDeleteNursing}
+            emptyText="No nursing sessions logged yet."
+          />
+        </>
+      )}
+      {sub === "solids" && (
+        <ListSection
+          title="Solid foods" icon="" items={solids} fields={SOLIDS_FIELDS}
+          renderTitle={(i) => `${i.food}${i.reaction ? ` — ${i.reaction}` : ""}`}
+          onAdd={onAddSolid} onDelete={onDeleteSolid}
+          emptyText="No solid foods logged yet."
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Diapers ---------- */
+function DiaperScreen({ items, onAdd, onDelete }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = items.filter((i) => i.date === today).length;
+  const quickLog = (type) => onAdd({ id: uid(), date: today, time: new Date().toTimeString().slice(0, 5), type });
+  const sorted = useMemo(() => [...items].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)), [items]);
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>🚼 Diapers</h2><Badge tone="neutral">{todayCount} today</Badge></div>
+      <div className="quick-actions three">
+        <Btn variant="ghost" onClick={() => quickLog("Wet")}>💧 Wet</Btn>
+        <Btn variant="ghost" onClick={() => quickLog("Dirty")}>💩 Dirty</Btn>
+        <Btn variant="ghost" onClick={() => quickLog("Both")}>Both</Btn>
+      </div>
+      {sorted.length === 0 && <EmptyState text="No diapers logged yet." />}
+      <div className="list">
+        {sorted.map((item) => (
+          <Card key={item.id}>
+            <div className="row">
+              <div className="grow">
+                <div className="item-title">{item.type}</div>
+                <div className="item-sub">{fmtDate(item.date)} · {fmtTime(item.time)}</div>
+              </div>
+              <IconBtn variant="danger" onClick={() => onDelete(item.id)}>✕</IconBtn>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Today dashboard ---------- */
+function TodayScreen({ data, setView }) {
+  const { profile, nursing, diapers, journal, activeSleep } = data;
+  const lastNursing = [...nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
+  const lastDiaper = [...diapers].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
+  const lastJournal = [...journal].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+
+  return (
+    <div className="screen">
+      <div className="today-hero">
+        <Foot size={26} color="var(--marigold)" />
+        <div>
+          <h1>{profile.name || "Little Foot"}</h1>
+          <p>{ageString(profile.dob) || "Add a birthdate in Profile"}</p>
+        </div>
+      </div>
+
+      {activeSleep && (
+        <div className="hint-banner sleeping" onClick={() => setView("sleep")}>
+          😴 Currently asleep ({activeSleep.type}) — tap to wake up
+        </div>
+      )}
+
+      <div className="stat-row">
+        <Card onClick={() => setView("feed")}>
+          <div className="stat-label">Last feeding</div>
+          <div className="stat-value">{lastNursing ? `${fmtTime(lastNursing.time)}` : "—"}</div>
+          <div className="stat-sub">{lastNursing ? lastNursing.side : "No sessions yet"}</div>
+        </Card>
+        <Card onClick={() => setView("diapers")}>
+          <div className="stat-label">Last diaper</div>
+          <div className="stat-value">{lastDiaper ? fmtTime(lastDiaper.time) : "—"}</div>
+          <div className="stat-sub">{lastDiaper ? lastDiaper.type : "None logged"}</div>
+        </Card>
+      </div>
+
+      <div className="screen-head" style={{ marginTop: 8 }}><h2>📓 Latest memory</h2></div>
+      {lastJournal ? (
+        <Card onClick={() => setView("journal")}>
+          <div className="item-title">{lastJournal.author}</div>
+          <div className="item-sub">{fmtDate(lastJournal.date)}</div>
+          <div className="item-notes">{lastJournal.text}</div>
+        </Card>
+      ) : (
+        <EmptyState text="No journal entries yet — add your first memory together." />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Bottom nav ---------- */
+const NAV = [
+  { key: "today", icon: "🏠", label: "Today" },
+  { key: "feed", icon: "🍼", label: "Feed" },
+  { key: "sleep", icon: "😴", label: "Sleep" },
+  { key: "diapers", icon: "🚼", label: "Diapers" },
+  { key: "more", icon: "☰", label: "More" },
+];
+const MORE_KEYS = new Set(MORE_ITEMS.map((m) => m.key));
+
+function BottomNav({ view, setView }) {
+  const activeTop = MORE_KEYS.has(view) ? "more" : view;
+  return (
+    <nav className="bottom-nav">
+      {NAV.map((n) => (
+        <button key={n.key} className={activeTop === n.key ? "nav-item active" : "nav-item"} onClick={() => setView(n.key)}>
+          <span className="nav-icon">{n.icon}</span>
+          <span className="nav-label">{n.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+/* ---------- App ---------- */
 function App() {
-  const [data,sd]=useState(DEF);
-  const [loading,sl]=useState(true);
-  const [saving,ss]=useState(false);
-  const [sec,ssc]=useState("feeding");
-  const [more,sm]=useState(false);
-  const [err,se]=useState(null);
-
-  useEffect(()=>{load()},[]);
+  const [data, setData] = useState(DEF);
+  const [view, setView] = useState("today");
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const saveTimer = useRef(null);
 
   async function load() {
-    if (SUPABASE_URL==="YOUR_SUPABASE_URL"){se("setup");sl(false);return}
+    if (!sb) return;
+    setSyncing(true);
     try {
-      const {data:row}=await sb.from("baby_data").select("data").eq("id",1).single();
-      if(row?.data) sd({...DEF,...row.data,profile:{...DEF.profile,...(row.data.profile||{})}});;
-    } catch(e){}
-    sl(false);
+      const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
+      if (row?.data) setData(deepMerge(DEF, row.data));
+      setLastSynced(new Date());
+    } catch (e) {
+      console.error("Load failed", e);
+    }
+    setSyncing(false);
   }
 
-  async function save(nd) {
-    sd(nd);ss(true);
-    try{await sb.from("baby_data").upsert({id:1,data:nd},{onConflict:"id"})}catch(e){}
-    setTimeout(()=>ss(false),800);
+  async function persist(next) {
+    if (!sb) return;
+    try {
+      await sb.from("baby_data").update({ data: next }).eq("id", 1);
+      setLastSynced(new Date());
+    } catch (e) {
+      console.error("Save failed", e);
+    }
   }
 
-  function upd(k,v){save({...data,[k]:v})}
+  useEffect(() => { load(); }, []);
 
-  function go(id){
-    if(id==="more"){sm(x=>!x);return}
-    ssc(id);sm(false);
+  function update(patch) {
+    setData((prev) => {
+      const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => persist(next), 500);
+      return next;
+    });
   }
 
-  const curSec=[...PRIMARY,...MORE_SECS].find(s=>s.id===sec)||PRIMARY[0];
+  const addTo = (key) => (item) => update((prev) => ({ ...prev, [key]: [...prev[key], item] }));
+  const deleteFrom = (key) => (id) => update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) }));
 
-  if(loading) return <div className="loading"><div className="emo">🐾</div><div>Loading Little Foot…</div></div>;
-  if(err==="setup") return <div className="setup-box">
-    <div style={{fontSize:36,marginBottom:12}}>🔧</div>
-    <h2>Almost there!</h2>
-    <p style={{marginTop:8}}>Open <code>index.html</code> and replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> with your credentials from Supabase. See the setup guide for instructions.</p>
-  </div>;
+  const startSleep = (type) => update((prev) => ({ ...prev, activeSleep: { type, start: new Date().toTimeString().slice(0, 5) } }));
+  const stopSleep = () => update((prev) => {
+    const entry = { id: uid(), type: prev.activeSleep.type, date: new Date().toISOString().slice(0, 10), start: prev.activeSleep.start, end: new Date().toTimeString().slice(0, 5) };
+    return { ...prev, activeSleep: null, sleep: [...prev.sleep, entry] };
+  });
 
-  return <>
-    <div className="header">
-      <div>
-        <h1>🐾 Little Foot</h1>
-        {data.profile.name&&<div className="sub">{data.profile.name}'s tracker</div>}
-      </div>
-      <button className="refresh-btn" onClick={load}>↻ Refresh</button>
+  const isMore = MORE_KEYS.has(view);
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div className="brand"><Foot size={20} color="var(--marigold)" /><span>Little Foot</span></div>
+        <button className="refresh-btn" onClick={load} disabled={syncing}>{syncing ? "…" : "↻"}</button>
+      </header>
+
+      {isMore && (
+        <div className="back-row"><button className="back-btn" onClick={() => setView("more")}>← More</button></div>
+      )}
+
+      <main className="app-main">
+        {view === "today" && <TodayScreen data={data} setView={setView} />}
+        {view === "feed" && (
+          <FeedingScreen
+            nursing={data.nursing} solids={data.solids}
+            onAddNursing={addTo("nursing")} onDeleteNursing={deleteFrom("nursing")}
+            onAddSolid={addTo("solids")} onDeleteSolid={deleteFrom("solids")}
+          />
+        )}
+        {view === "sleep" && (
+          <SleepScreen items={data.sleep} active={data.activeSleep} onAdd={addTo("sleep")} onDelete={deleteFrom("sleep")} onStart={startSleep} onStop={stopSleep} />
+        )}
+        {view === "diapers" && <DiaperScreen items={data.diapers} onAdd={addTo("diapers")} onDelete={deleteFrom("diapers")} />}
+        {view === "more" && <MoreScreen setView={setView} />}
+        {view === "growth" && (
+          <ListSection title="Growth" icon="📏" items={data.growth} fields={GROWTH_FIELDS}
+            renderTitle={(i) => [i.weight && `${i.weight} lb`, i.height && `${i.height} in`, i.headCirc && `${i.headCirc} in hc`].filter(Boolean).join(" · ") || "Measurement"}
+            onAdd={addTo("growth")} onDelete={deleteFrom("growth")} emptyText="No growth measurements yet." />
+        )}
+        {view === "health" && (
+          <ListSection title="Health" icon="🩺" items={data.health} fields={HEALTH_FIELDS}
+            renderTitle={(i) => `${i.type || "Visit"}${i.doctor ? ` with ${i.doctor}` : ""}`}
+            onAdd={addTo("health")} onDelete={deleteFrom("health")} emptyText="No doctor visits logged yet." />
+        )}
+        {view === "milestones" && (
+          <ListSection title="Milestones" icon="⭐" items={data.milestones} fields={MILESTONE_FIELDS}
+            renderTitle={(i) => i.title} renderSub={(i) => `${i.category || ""} · ${fmtDate(i.date)}`}
+            onAdd={addTo("milestones")} onDelete={deleteFrom("milestones")} emptyText="No milestones logged yet." />
+        )}
+        {view === "words" && (
+          <ListSection title="First words" icon="💬" items={data.words} fields={WORDS_FIELDS}
+            renderTitle={(i) => `"${i.word}"`} renderSub={(i) => fmtDate(i.date)}
+            onAdd={addTo("words")} onDelete={deleteFrom("words")} emptyText="No words logged yet." />
+        )}
+        {view === "journal" && (
+          <JournalScreen items={data.journal} profile={data.profile} onAdd={addTo("journal")} onDelete={deleteFrom("journal")} />
+        )}
+        {view === "symptoms" && (
+          <ListSection title="Symptoms" icon="🤒" items={data.symptoms} fields={SYMPTOM_FIELDS}
+            renderTitle={(i) => `${i.type || "Symptom"}${i.temp ? ` · ${i.temp}°F` : ""}`} renderSub={(i) => `${i.severity || ""} · ${fmtDate(i.date)}`}
+            onAdd={addTo("symptoms")} onDelete={deleteFrom("symptoms")} emptyText="No symptoms logged yet." />
+        )}
+        {view === "vaccines" && (
+          <ListSection title="Vaccines" icon="💉" items={data.vaccines} fields={VACCINE_FIELDS} sortKey="scheduled"
+            renderTitle={(i) => i.name} renderSub={(i) => i.given ? `Given ${fmtDate(i.given)}` : i.scheduled ? `Scheduled ${fmtDate(i.scheduled)}` : ""}
+            tone={(i) => (i.given ? "given" : "scheduled")}
+            onAdd={addTo("vaccines")} onDelete={deleteFrom("vaccines")} emptyText="No vaccines logged yet." />
+        )}
+        {view === "profile" && <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })} />}
+      </main>
+
+      <BottomNav view={view} setView={setView} />
     </div>
-    {saving&&<div className="saving">Saving…</div>}
-
-    <div className="content">
-      <div className="sec-title">{curSec.i} {curSec.l}</div>
-      {sec==="profile"&&<ProfileSection data={data} upd={upd}/>}
-      {sec==="growth"&&<GrowthSection data={data} upd={upd}/>}
-      {sec==="health"&&<HealthSection data={data} upd={upd}/>}
-      {sec==="feeding"&&<FeedingSection data={data} upd={upd}/>}
-      {sec==="sleep"&&<SleepSection data={data} upd={upd}/>}
-      {sec==="milestones"&&<MilestonesSection data={data} upd={upd}/>}
-      {sec==="words"&&<WordsSection data={data} upd={upd}/>}
-      {sec==="journal"&&<JournalSection data={data} upd={upd}/>}
-      {sec==="diapers"&&<DiapersSection data={data} upd={upd}/>}
-      {sec==="symptoms"&&<SymptomsSection data={data} upd={upd}/>}
-      {sec==="vaccines"&&<VaccinesSection data={data} upd={upd}/>}
-    </div>
-
-    {more&&<>
-      <div className="overlay-bg" onClick={()=>sm(false)}/>
-      <div className="more-overlay">
-        <div className="more-grid">
-          {MORE_SECS.map(s=><button key={s.id} className={`more-btn ${sec===s.id?"active":""}`} onClick={()=>go(s.id)}>
-            <span className="ni">{s.i}</span>{s.l}
-          </button>)}
-        </div>
-      </div>
-    </>}
-
-    <div className="bottom-nav">
-      {PRIMARY.map(s=><button key={s.id} className={`nav-btn ${(s.id==="more"?more:sec===s.id)?"active":""}`} onClick={()=>go(s.id)}>
-        <span className="ni">{s.i}</span>{s.l}
-      </button>)}
-    </div>
-  </>;
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
 </script>
 </body>
 </html>
