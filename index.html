@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Little Foot</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Little Foot" />
+  <meta name="theme-color" content="#7c6bdc" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    :root {
+      --purple:#7c6bdc; --purple-light:#f0ecff; --purple-dark:#5a4bc0;
+      --bg:#fdfcff; --card:#fff; --border:#e8e4f0;
+      --text:#1a1a2e; --muted:#6b7280; --danger:#e53935;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
+    input,select,textarea,button{font-family:inherit;font-size:15px}
+    input,select,textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fafafa;color:var(--text);-webkit-appearance:none;appearance:none}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple);background:#fff}
+    textarea{resize:vertical;min-height:70px}
+    .header{background:var(--purple);color:#fff;padding:14px 16px 10px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center}
+    .header h1{font-size:20px;font-weight:600}
+    .header .sub{font-size:12px;opacity:.75;margin-top:2px}
+    .refresh-btn{background:rgba(255,255,255,.2);border:none;border-radius:8px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px}
+    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom));z-index:100}
+    .nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:4px 10px;border-radius:8px;color:var(--muted);font-size:10px;min-width:56px}
+    .nav-btn .ni{font-size:22px}
+    .nav-btn.active{color:var(--purple)}
+    .content{padding:16px;padding-bottom:90px}
+    .sec-title{font-size:22px;font-weight:600;margin-bottom:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px;margin-top:12px}
+    label:first-child{margin-top:0}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;border:none;background:var(--purple);color:#fff;margin-top:14px}
+    .add-btn:active{background:var(--purple-dark)}
+    .del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;font-size:18px;flex-shrink:0;line-height:1}
+    .tab-btn{background:none;border:none;cursor:pointer;padding:8px 16px;border-radius:20px;font-size:14px;font-family:inherit;color:var(--muted)}
+    .tab-btn.active{background:var(--purple-light);color:var(--purple-dark);font-weight:500}
+    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
+    .b-purple{background:#ece9ff;color:#4a3bbf} .b-teal{background:#d1faf4;color:#085041}
+    .b-coral{background:#fde8e6;color:#a82817} .b-blue{background:#dbeafe;color:#1e40af}
+    .b-amber{background:#fef3c7;color:#92400e} .b-green{background:#dcfce7;color:#15803d}
+    .b-pink{background:#fce7f3;color:#9d174d}  .b-gray{background:#f3f4f6;color:#4b5563}
+    .erow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .econtent{flex:1;min-width:0}
+    .etitle{font-weight:500;font-size:15px;margin-bottom:3px}
+    .emeta{font-size:12px;color:var(--muted)}
+    .enotes{font-size:13px;margin-top:5px}
+    .stats{display:flex;gap:10px;margin-bottom:16px}
+    .stat{flex:1;background:var(--purple-light);border-radius:12px;padding:12px;text-align:center}
+    .stat-v{font-size:26px;font-weight:600;color:var(--purple-dark)}
+    .stat-l{font-size:11px;color:var(--muted);margin-top:2px}
+    .word-chip{display:inline-flex;align-items:center;gap:6px;background:var(--purple-light);color:var(--purple-dark);padding:6px 12px;border-radius:20px;font-size:14px;font-weight:500;margin:4px}
+    .chip-del{background:none;border:none;cursor:pointer;color:inherit;padding:0;font-size:14px;line-height:1}
+    .more-overlay{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:200;padding:12px 8px}
+    .more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    .more-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:10px 8px;border-radius:10px;font-size:11px;color:var(--muted);font-family:inherit}
+    .more-btn .ni{font-size:22px}
+    .more-btn.active{background:var(--purple-light);color:var(--purple-dark);font-weight:500}
+    .overlay-bg{position:fixed;inset:0;z-index:150}
+    .saving{position:fixed;top:max(10px,env(safe-area-inset-top));right:14px;font-size:11px;color:rgba(255,255,255,.85);z-index:300}
+    .loading{text-align:center;padding:80px 24px;color:var(--muted)}
+    .loading .emo{font-size:52px;margin-bottom:12px}
+    .setup-box{padding:28px 20px}
+    .setup-box h2{margin-bottom:10px}
+    .setup-box p{color:var(--muted);font-size:14px;line-height:1.7}
+    code{background:#f0ecff;color:var(--purple-dark);padding:2px 6px;border-radius:4px;font-size:13px}
+    .rx-warn{background:#fde8e6;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:13px;color:#a82817;margin-top:8px}
+    .chk-row{display:flex;align-items:center;gap:8px;margin:12px 0}
+    .chk-row input[type=checkbox]{width:20px;height:20px;margin:0;flex-shrink:0}
+    .chk-row label{font-size:15px;color:var(--text);margin:0}
+    .profile-hero{text-align:center;padding:20px 16px;background:var(--purple-light);border-radius:14px;margin-bottom:16px}
+    .profile-hero .emo{font-size:52px}
+    .profile-hero .name{font-size:22px;font-weight:600;margin-top:8px}
+    .profile-hero .age{font-size:14px;color:var(--muted);margin-top:4px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ══════════════════════════════════════════════════════════
+// 🔧 STEP 2: Replace these two lines with your Supabase values
+const SUPABASE_URL      = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+// ══════════════════════════════════════════════════════════
+
+const { useState, useEffect } = React;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const DEF = {
+  profile:{ name:"", birthdate:"", bloodType:"", notes:"" },
+  growth:[], health:[], feeding:[], sleep:[],
+  milestones:[], words:[], journal:[], diapers:[], symptoms:[], vaccines:[],
+};
+
+const fmtDate = d => d ? new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "";
+const today   = () => new Date().toISOString().slice(0,10);
+const nowT    = () => new Date().toTimeString().slice(0,5);
+const uid     = () => Date.now() + Math.random();
+const dur = (s,e) => {
+  if (!s||!e) return null;
+  let m = (new Date("2000-01-01T"+e)-new Date("2000-01-01T"+s))/60000;
+  if (m<=0) m+=1440;
+  return `${Math.floor(m/60)}h ${Math.round(m%60)}m`;
+};
+
+// ── Mini UI ───────────────────────────────────────────────
+const Lbl = ({c}) => <label>{c}</label>;
+const Inp = ({label,...p}) => <><Lbl c={label}/><input {...p}/></>;
+const Sel = ({label,children,...p}) => <><Lbl c={label}/><select {...p}>{children}</select></>;
+const Txt = ({label,...p}) => <><Lbl c={label}/><textarea {...p}/></>;
+const Del = ({on}) => <button className="del-btn" onClick={on}>✕</button>;
+const Go  = ({on,c="Save entry"}) => <button className="add-btn" onClick={on}>{c}</button>;
+const Bdg = ({cls,c}) => <span className={`badge ${cls}`}>{c}</span>;
+
+// ── Profile ───────────────────────────────────────────────
+function ProfileSection({data, upd}) {
+  const [f,sf] = useState(data.profile);
+  const ch = k => e => sf(x=>({...x,[k]:e.target.value}));
+  const age = () => {
+    if (!f.birthdate) return null;
+    const bd=new Date(f.birthdate),now=new Date();
+    let m=(now.getFullYear()-bd.getFullYear())*12+(now.getMonth()-bd.getMonth());
+    if (m<1){const d=Math.floor((now-bd)/86400000);return `${d} day${d!==1?"s":""} old`}
+    if (m<24) return `${m} month${m!==1?"s":""} old`;
+    return `${Math.floor(m/12)}y ${m%12}m old`;
+  };
+  return <div>
+    {f.name&&<div className="profile-hero">
+      <div className="emo">👶</div>
+      <div className="name">{f.name}</div>
+      {age()&&<div className="age">{age()}</div>}
+    </div>}
+    <div className="card">
+      <Inp label="Baby's name" value={f.name} onChange={ch("name")} placeholder="e.g. Lily"/>
+      <Inp label="Date of birth" type="date" value={f.birthdate} onChange={ch("birthdate")}/>
+      <Sel label="Blood type" value={f.bloodType} onChange={ch("bloodType")}>
+        <option value="">Unknown</option>
+        {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t=><option key={t}>{t}</option>)}
+      </Sel>
+      <Txt label="Notes (allergies, special needs…)" value={f.notes} onChange={ch("notes")}/>
+      <Go on={()=>upd("profile",f)} c="Save profile"/>
+    </div>
+  </div>;
+}
+
+// ── Growth ────────────────────────────────────────────────
+function GrowthSection({data, upd}) {
+  const [f,sf]=useState({date:today(),weight:"",height:"",head:"",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{
+    if(!f.date) return;
+    upd("growth",[{...f,id:uid()},...data.growth]);
+    sf({date:today(),weight:"",height:"",head:"",notes:""});
+  };
+  return <div>
+    <div className="card">
+      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Weight (lbs)" type="number" step="0.1" value={f.weight} onChange={ch("weight")}/></div>
+      <div className="g2"><Inp label="Height (in)" type="number" step="0.1" value={f.height} onChange={ch("height")}/><Inp label="Head circ. (in)" type="number" step="0.1" value={f.head} onChange={ch("head")}/></div>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Go on={add} c="Add measurement"/>
+    </div>
+    {data.growth.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div className="etitle">{fmtDate(e.date)}</div>
+          <div className="emeta" style={{display:"flex",gap:12,marginTop:4}}>
+            {e.weight&&<span>⚖️ {e.weight} lbs</span>}
+            {e.height&&<span>📏 {e.height} in</span>}
+            {e.head&&<span>🔵 {e.head} in</span>}
+          </div>
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("growth",data.growth.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Health ────────────────────────────────────────────────
+function HealthSection({data, upd}) {
+  const [f,sf]=useState({date:today(),type:"checkup",doctor:"",notes:"",results:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{
+    upd("health",[{...f,id:uid()},...data.health]);
+    sf({date:today(),type:"checkup",doctor:"",notes:"",results:""});
+  };
+  const tc={checkup:"b-blue",urgent:"b-coral",specialist:"b-purple",other:"b-gray"};
+  return <div>
+    <div className="card">
+      <div className="g2">
+        <Inp label="Date" type="date" value={f.date} onChange={ch("date")}/>
+        <Sel label="Type" value={f.type} onChange={ch("type")}>
+          <option value="checkup">Well-child</option><option value="urgent">Urgent/sick</option>
+          <option value="specialist">Specialist</option><option value="other">Other</option>
+        </Sel>
+      </div>
+      <Inp label="Doctor / clinic" value={f.doctor} onChange={ch("doctor")}/>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Txt label="Results / follow-up" value={f.results} onChange={ch("results")} style={{minHeight:50}}/>
+      <Go on={add} c="Add visit"/>
+    </div>
+    {data.health.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
+            <span className="etitle">{fmtDate(e.date)}</span>
+            <Bdg cls={tc[e.type]||"b-gray"} c={e.type}/>
+          </div>
+          {e.doctor&&<div className="emeta">👨‍⚕️ {e.doctor}</div>}
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+          {e.results&&<div className="enotes" style={{color:"var(--muted)"}}>Results: {e.results}</div>}
+        </div>
+        <Del on={()=>upd("health",data.health.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Feeding ───────────────────────────────────────────────
+function FeedingSection({data, upd}) {
+  const [tab,st]=useState("nursing");
+  const [nf,sn]=useState({date:today(),time:nowT(),dur:"",side:"left",notes:""});
+  const [ff,sf]=useState({date:today(),food:"",reaction:"none",notes:""});
+  const nch=k=>e=>sn(x=>({...x,[k]:e.target.value}));
+  const fch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const addN=()=>{upd("feeding",[{...nf,type:"nursing",id:uid()},...data.feeding]);sn({date:today(),time:nowT(),dur:"",side:"left",notes:""})};
+  const addF=()=>{if(!ff.food)return;upd("feeding",[{...ff,type:"solid",id:uid()},...data.feeding]);sf({date:today(),food:"",reaction:"none",notes:""})};
+  const rc={none:"b-gray",good:"b-green",mild:"b-amber",allergic:"b-coral"};
+  return <div>
+    <div style={{display:"flex",gap:8,marginBottom:16}}>
+      <button className={`tab-btn ${tab==="nursing"?"active":""}`} onClick={()=>st("nursing")}>🍼 Nursing</button>
+      <button className={`tab-btn ${tab==="solids"?"active":""}`} onClick={()=>st("solids")}>🥣 Solids</button>
+    </div>
+    {tab==="nursing"?<div className="card">
+      <div className="g2"><Inp label="Date" type="date" value={nf.date} onChange={nch("date")}/><Inp label="Time" type="time" value={nf.time} onChange={nch("time")}/></div>
+      <div className="g2"><Inp label="Duration (min)" type="number" value={nf.dur} onChange={nch("dur")}/><Sel label="Side" value={nf.side} onChange={nch("side")}><option value="left">Left</option><option value="right">Right</option><option value="both">Both</option><option value="bottle">Bottle</option></Sel></div>
+      <Txt label="Notes" value={nf.notes} onChange={nch("notes")} style={{minHeight:50}}/>
+      <Go on={addN} c="Log nursing session"/>
+    </div>:<div className="card">
+      <Inp label="Food introduced" value={ff.food} onChange={fch("food")} placeholder="e.g. banana, sweet potato…"/>
+      <Inp label="Date" type="date" value={ff.date} onChange={fch("date")}/>
+      <Sel label="Reaction" value={ff.reaction} onChange={fch("reaction")}>
+        <option value="none">No reaction</option><option value="good">Loved it! 😍</option>
+        <option value="mild">Mild reaction</option><option value="allergic">Allergic ⚠️</option>
+      </Sel>
+      {ff.reaction==="allergic"&&<div className="rx-warn">⚠️ If this is serious, call your doctor immediately.</div>}
+      <Txt label="Notes" value={ff.notes} onChange={fch("notes")} style={{minHeight:50}}/>
+      <Go on={addF} c="Log food"/>
+    </div>}
+    {data.feeding.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:3}}>
+            <span className="etitle">{e.type==="nursing"?`🍼 ${e.side}`:`🥣 ${e.food}`}</span>
+            {e.reaction&&e.reaction!=="none"&&<Bdg cls={rc[e.reaction]} c={e.reaction}/>}
+          </div>
+          <div className="emeta">{fmtDate(e.date)}{e.time?` · ${e.time}`:""}{e.dur?` · ${e.dur} min`:""}</div>
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("feeding",data.feeding.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Sleep ─────────────────────────────────────────────────
+function SleepSection({data, upd}) {
+  const [f,sf]=useState({date:today(),start:"",end:"",type:"night",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{upd("sleep",[{...f,id:uid()},...data.sleep]);sf({date:today(),start:"",end:"",type:"night",notes:""})};
+  const d=dur(f.start,f.end);
+  return <div>
+    <div className="card">
+      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Sel label="Type" value={f.type} onChange={ch("type")}><option value="night">🌙 Night</option><option value="nap">💤 Nap</option></Sel></div>
+      <div className="g2"><Inp label="Sleep time" type="time" value={f.start} onChange={ch("start")}/><Inp label="Wake time" type="time" value={f.end} onChange={ch("end")}/></div>
+      {d&&<div style={{fontSize:13,color:"var(--muted)",margin:"6px 0"}}>Duration: <strong>{d}</strong></div>}
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Go on={add} c="Log sleep"/>
+    </div>
+    {data.sleep.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
+            <span className="etitle">{e.type==="night"?"🌙 Night":"💤 Nap"}</span>
+            {dur(e.start,e.end)&&<Bdg cls="b-blue" c={dur(e.start,e.end)}/>}
+          </div>
+          <div className="emeta">{fmtDate(e.date)}{e.start?` · ${e.start} → ${e.end}`:""}</div>
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("sleep",data.sleep.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Milestones ────────────────────────────────────────────
+function MilestonesSection({data, upd}) {
+  const [f,sf]=useState({date:today(),milestone:"",category:"motor",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{if(!f.milestone)return;upd("milestones",[{...f,id:uid()},...data.milestones]);sf({date:today(),milestone:"",category:"motor",notes:""})};
+  const cc={motor:"b-teal",social:"b-pink",cognitive:"b-purple",communication:"b-blue",other:"b-gray"};
+  return <div>
+    <div className="card">
+      <Inp label="Milestone" value={f.milestone} onChange={ch("milestone")} placeholder="e.g. First smile, rolled over…"/>
+      <div className="g2"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Sel label="Category" value={f.category} onChange={ch("category")}><option value="motor">Motor</option><option value="social">Social</option><option value="cognitive">Cognitive</option><option value="communication">Communication</option><option value="other">Other</option></Sel></div>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Go on={add} c="Add milestone"/>
+    </div>
+    {data.milestones.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
+            <span className="etitle">⭐ {e.milestone}</span>
+            <Bdg cls={cc[e.category]||"b-gray"} c={e.category}/>
+          </div>
+          <div className="emeta">{fmtDate(e.date)}</div>
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("milestones",data.milestones.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Words ─────────────────────────────────────────────────
+function WordsSection({data, upd}) {
+  const [f,sf]=useState({date:today(),word:"",context:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{if(!f.word)return;upd("words",[{...f,id:uid()},...data.words]);sf({date:today(),word:"",context:""})};
+  return <div>
+    <div className="card">
+      <div className="g2"><Inp label="Word / sound" value={f.word} onChange={ch("word")} placeholder="mama, dada…"/><Inp label="Date first said" type="date" value={f.date} onChange={ch("date")}/></div>
+      <Txt label="Context / story" value={f.context} onChange={ch("context")} style={{minHeight:60}}/>
+      <Go on={add} c="Add word"/>
+    </div>
+    {data.words.length>0&&<>
+      <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>💬 {data.words.length} word{data.words.length!==1?"s":""} so far</div>
+      <div style={{display:"flex",flexWrap:"wrap",marginBottom:16}}>
+        {data.words.map(e=><span className="word-chip" key={e.id}>
+          {e.word} <span style={{fontSize:11,opacity:.7}}>{fmtDate(e.date)}</span>
+          <button className="chip-del" onClick={()=>upd("words",data.words.filter(x=>x.id!==e.id))}>✕</button>
+        </span>)}
+      </div>
+      {data.words.filter(w=>w.context).map(e=><div className="card" key={e.id+"c"}>
+        <div className="etitle">💬 "{e.word}" <span style={{fontWeight:400,color:"var(--muted)",fontSize:13}}>— {fmtDate(e.date)}</span></div>
+        <div className="enotes" style={{marginTop:6}}>{e.context}</div>
+      </div>)}
+    </>}
+  </div>;
+}
+
+// ── Journal ───────────────────────────────────────────────
+function JournalSection({data, upd}) {
+  const [f,sf]=useState({date:today(),title:"",body:"",author:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{if(!f.body)return;upd("journal",[{...f,id:uid()},...data.journal]);sf({date:today(),title:"",body:"",author:""})};
+  return <div>
+    <div className="card">
+      <div className="g2"><Inp label="Title (optional)" value={f.title} onChange={ch("title")} placeholder="e.g. First bath"/><Inp label="Written by" value={f.author} onChange={ch("author")} placeholder="Mom / Dad"/></div>
+      <Inp label="Date" type="date" value={f.date} onChange={ch("date")}/>
+      <Txt label="Entry" value={f.body} onChange={ch("body")} style={{minHeight:130}} placeholder="Write a memory…"/>
+      <Go on={add} c="Add entry"/>
+    </div>
+    {data.journal.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+            {e.title&&<span className="etitle">📓 {e.title}</span>}
+            <span className="emeta">{fmtDate(e.date)}</span>
+            {e.author&&<Bdg cls="b-pink" c={e.author}/>}
+          </div>
+          <div style={{fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{e.body}</div>
+        </div>
+        <Del on={()=>upd("journal",data.journal.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Diapers ───────────────────────────────────────────────
+function DiapersSection({data, upd}) {
+  const [f,sf]=useState({date:today(),time:nowT(),type:"wet",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{upd("diapers",[{...f,id:uid()},...data.diapers]);sf({date:today(),time:nowT(),type:"wet",notes:""})};
+  const tc={wet:"b-blue",dirty:"b-amber",both:"b-coral",dry:"b-gray"};
+  const todayCount=data.diapers.filter(d=>d.date===today()).length;
+  return <div>
+    <div className="stats">
+      <div className="stat"><div className="stat-v">{todayCount}</div><div className="stat-l">Today</div></div>
+      <div className="stat"><div className="stat-v">{data.diapers.length}</div><div className="stat-l">Total logged</div></div>
+    </div>
+    <div className="card">
+      <div className="g3"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Time" type="time" value={f.time} onChange={ch("time")}/><Sel label="Type" value={f.type} onChange={ch("type")}><option value="wet">Wet</option><option value="dirty">Dirty</option><option value="both">Both</option><option value="dry">Dry</option></Sel></div>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:40}}/>
+      <Go on={add} c="🧷 Log diaper"/>
+    </div>
+    {data.diapers.slice(0,40).map(e=><div className="card" key={e.id} style={{padding:"10px 14px"}}>
+      <div className="erow">
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <Bdg cls={tc[e.type]} c={e.type}/>
+          <span className="emeta">{fmtDate(e.date)} · {e.time}</span>
+          {e.notes&&<span className="emeta">{e.notes}</span>}
+        </div>
+        <Del on={()=>upd("diapers",data.diapers.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Symptoms ──────────────────────────────────────────────
+function SymptomsSection({data, upd}) {
+  const [f,sf]=useState({date:today(),time:nowT(),symptom:"",severity:"mild",temp:"",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{if(!f.symptom)return;upd("symptoms",[{...f,id:uid()},...data.symptoms]);sf({date:today(),time:nowT(),symptom:"",severity:"mild",temp:"",notes:""})};
+  const sc={mild:"b-amber",moderate:"b-coral",severe:"b-coral"};
+  return <div>
+    <div className="card">
+      <Inp label="Symptom" value={f.symptom} onChange={ch("symptom")} placeholder="fussiness, runny nose, fever…"/>
+      <div className="g3"><Inp label="Date" type="date" value={f.date} onChange={ch("date")}/><Inp label="Time" type="time" value={f.time} onChange={ch("time")}/><Inp label="Temp (°F)" type="number" step="0.1" value={f.temp} onChange={ch("temp")}/></div>
+      <Sel label="Severity" value={f.severity} onChange={ch("severity")}><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></Sel>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Go on={add} c="Log symptom"/>
+    </div>
+    {data.symptoms.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
+            <span className="etitle">🌡️ {e.symptom}</span><Bdg cls={sc[e.severity]||"b-amber"} c={e.severity}/>
+          </div>
+          <div className="emeta">{fmtDate(e.date)} · {e.time}{e.temp?` · ${e.temp}°F`:""}</div>
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("symptoms",data.symptoms.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── Vaccines ──────────────────────────────────────────────
+function VaccinesSection({data, upd}) {
+  const [f,sf]=useState({date:today(),name:"",nextDue:"",given:true,reaction:"",notes:""});
+  const ch=k=>e=>sf(x=>({...x,[k]:e.target.value}));
+  const add=()=>{if(!f.name)return;upd("vaccines",[{...f,id:uid()},...data.vaccines]);sf({date:today(),name:"",nextDue:"",given:true,reaction:"",notes:""})};
+  const vx=["Hepatitis B","RV (Rotavirus)","DTaP","Hib","PCV13","IPV","Flu","MMR","Varicella","Hepatitis A","MenACWY","HPV","Tdap","Other"];
+  return <div>
+    <div className="card">
+      <Sel label="Vaccine" value={f.name} onChange={ch("name")}><option value="">Select…</option>{vx.map(v=><option key={v}>{v}</option>)}</Sel>
+      <div className="g2"><Inp label="Date given" type="date" value={f.date} onChange={ch("date")}/><Inp label="Next dose due" type="date" value={f.nextDue} onChange={ch("nextDue")}/></div>
+      <div className="chk-row"><input type="checkbox" id="vgiven" checked={f.given} onChange={e=>sf(x=>({...x,given:e.target.checked}))}/><label htmlFor="vgiven">Vaccine was administered</label></div>
+      <Inp label="Reaction (if any)" value={f.reaction} onChange={ch("reaction")}/>
+      <Txt label="Notes" value={f.notes} onChange={ch("notes")} style={{minHeight:50}}/>
+      <Go on={add} c="Add vaccine"/>
+    </div>
+    {data.vaccines.map(e=><div className="card" key={e.id}>
+      <div className="erow">
+        <div className="econtent">
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
+            <span className="etitle">💉 {e.name}</span><Bdg cls={e.given?"b-teal":"b-amber"} c={e.given?"given":"scheduled"}/>
+          </div>
+          <div className="emeta">{fmtDate(e.date)}{e.nextDue?` · Next: ${fmtDate(e.nextDue)}`:""}</div>
+          {e.reaction&&<div className="enotes" style={{color:"#a82817"}}>⚠️ Reaction: {e.reaction}</div>}
+          {e.notes&&<div className="enotes">{e.notes}</div>}
+        </div>
+        <Del on={()=>upd("vaccines",data.vaccines.filter(x=>x.id!==e.id))}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
+// ── App Shell ─────────────────────────────────────────────
+const PRIMARY = [
+  {id:"feeding",l:"Feeding",i:"🍼"},
+  {id:"sleep",l:"Sleep",i:"😴"},
+  {id:"diapers",l:"Diapers",i:"🧷"},
+  {id:"journal",l:"Journal",i:"📓"},
+  {id:"more",l:"More",i:"☰"},
+];
+const MORE_SECS = [
+  {id:"profile",l:"Profile",i:"👶"},
+  {id:"growth",l:"Growth",i:"📏"},
+  {id:"health",l:"Health",i:"🩺"},
+  {id:"milestones",l:"Milestones",i:"⭐"},
+  {id:"words",l:"Words",i:"💬"},
+  {id:"symptoms",l:"Symptoms",i:"🌡️"},
+  {id:"vaccines",l:"Vaccines",i:"💉"},
+];
+
+function App() {
+  const [data,sd]=useState(DEF);
+  const [loading,sl]=useState(true);
+  const [saving,ss]=useState(false);
+  const [sec,ssc]=useState("feeding");
+  const [more,sm]=useState(false);
+  const [err,se]=useState(null);
+
+  useEffect(()=>{load()},[]);
+
+  async function load() {
+    if (SUPABASE_URL==="YOUR_SUPABASE_URL"){se("setup");sl(false);return}
+    try {
+      const {data:row}=await sb.from("baby_data").select("data").eq("id",1).single();
+      if(row?.data) sd(row.data);
+    } catch(e){}
+    sl(false);
+  }
+
+  async function save(nd) {
+    sd(nd);ss(true);
+    try{await sb.from("baby_data").upsert({id:1,data:nd},{onConflict:"id"})}catch(e){}
+    setTimeout(()=>ss(false),800);
+  }
+
+  function upd(k,v){save({...data,[k]:v})}
+
+  function go(id){
+    if(id==="more"){sm(x=>!x);return}
+    ssc(id);sm(false);
+  }
+
+  const curSec=[...PRIMARY,...MORE_SECS].find(s=>s.id===sec)||PRIMARY[0];
+
+  if(loading) return <div className="loading"><div className="emo">🐾</div><div>Loading Little Foot…</div></div>;
+  if(err==="setup") return <div className="setup-box">
+    <div style={{fontSize:36,marginBottom:12}}>🔧</div>
+    <h2>Almost there!</h2>
+    <p style={{marginTop:8}}>Open <code>index.html</code> and replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> with your credentials from Supabase. See the setup guide for instructions.</p>
+  </div>;
+
+  return <>
+    <div className="header">
+      <div>
+        <h1>🐾 Little Foot</h1>
+        {data.profile.name&&<div className="sub">{data.profile.name}'s tracker</div>}
+      </div>
+      <button className="refresh-btn" onClick={load}>↻ Refresh</button>
+    </div>
+    {saving&&<div className="saving">Saving…</div>}
+
+    <div className="content">
+      <div className="sec-title">{curSec.i} {curSec.l}</div>
+      {sec==="profile"&&<ProfileSection data={data} upd={upd}/>}
+      {sec==="growth"&&<GrowthSection data={data} upd={upd}/>}
+      {sec==="health"&&<HealthSection data={data} upd={upd}/>}
+      {sec==="feeding"&&<FeedingSection data={data} upd={upd}/>}
+      {sec==="sleep"&&<SleepSection data={data} upd={upd}/>}
+      {sec==="milestones"&&<MilestonesSection data={data} upd={upd}/>}
+      {sec==="words"&&<WordsSection data={data} upd={upd}/>}
+      {sec==="journal"&&<JournalSection data={data} upd={upd}/>}
+      {sec==="diapers"&&<DiapersSection data={data} upd={upd}/>}
+      {sec==="symptoms"&&<SymptomsSection data={data} upd={upd}/>}
+      {sec==="vaccines"&&<VaccinesSection data={data} upd={upd}/>}
+    </div>
+
+    {more&&<>
+      <div className="overlay-bg" onClick={()=>sm(false)}/>
+      <div className="more-overlay">
+        <div className="more-grid">
+          {MORE_SECS.map(s=><button key={s.id} className={`more-btn ${sec===s.id?"active":""}`} onClick={()=>go(s.id)}>
+            <span className="ni">{s.i}</span>{s.l}
+          </button>)}
+        </div>
+      </div>
+    </>}
+
+    <div className="bottom-nav">
+      {PRIMARY.map(s=><button key={s.id} className={`nav-btn ${(s.id==="more"?more:sec===s.id)?"active":""}`} onClick={()=>go(s.id)}>
+        <span className="ni">{s.i}</span>{s.l}
+      </button>)}
+    </div>
+  </>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
