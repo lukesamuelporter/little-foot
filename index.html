@@ -17,7 +17,6 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --cream:#FBF6EC; --paper:#FFFFFF; --ink:#2C2620; --ink-soft:#7A7167;
@@ -325,39 +324,37 @@ function downloadICS({ title, date, time, notes }) {
   URL.revokeObjectURL(url);
 }
 
-/* ---------- Google Calendar (client-side OAuth, bring-your-own Client ID) ---------- */
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
+/* ---------- Google Calendar (server-backed, silent refresh — see /api/google-*.js) ---------- */
 function useGoogleAuth() {
-  const [token, setToken] = useState(() => {
+  const [token, setToken] = useState(null);
+  const [status, setStatus] = useState("checking"); // checking | connected | not_configured | error
+  const expiryRef = useRef(0);
+
+  async function refresh() {
     try {
-      const saved = JSON.parse(localStorage.getItem("lf_google_token") || "null");
-      if (saved && saved.expiresAt > Date.now()) return saved.token;
-    } catch (e) {}
-    return null;
-  });
-  const clientRef = useRef(null);
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (window.google?.accounts?.oauth2 && !clientRef.current) {
-        clientRef.current = window.google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: "https://www.googleapis.com/auth/calendar.events",
-          callback: (resp) => {
-            if (resp.access_token) {
-              const expiresAt = Date.now() + (resp.expires_in ? resp.expires_in * 1000 : 3500 * 1000);
-              localStorage.setItem("lf_google_token", JSON.stringify({ token: resp.access_token, expiresAt }));
-              setToken(resp.access_token);
-            }
-          },
-        });
-        clearInterval(t);
+      const res = await fetch("/api/google-token");
+      const data = await res.json();
+      if (data.access_token) {
+        setToken(data.access_token);
+        expiryRef.current = Date.now() + (data.expires_in ? (data.expires_in - 120) * 1000 : 3300 * 1000);
+        setStatus("connected");
+      } else if (data.error === "not_configured") {
+        setStatus("not_configured");
+      } else {
+        setStatus("error");
       }
-    }, 400);
+    } catch (e) {
+      setStatus("error");
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+    const t = setInterval(() => { if (Date.now() > expiryRef.current - 60000) refresh(); }, 60000);
     return () => clearInterval(t);
   }, []);
-  const connect = () => (clientRef.current ? clientRef.current.requestAccessToken() : alert("Google sign-in is still loading — try again in a moment."));
-  const disconnect = () => { localStorage.removeItem("lf_google_token"); setToken(null); };
-  return { token, connect, disconnect };
+
+  return { token, status };
 }
 async function fetchGoogleEvents(token, timeMin, timeMax) {
   const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
@@ -1416,7 +1413,7 @@ function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
   );
 }
 function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSchedule }) {
-  const { token, connect, disconnect } = useGoogleAuth();
+  const { token, status } = useGoogleAuth();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [googleEvents, setGoogleEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -1454,11 +1451,17 @@ function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSch
       <div className="screen-head"><h2>🗓️ Calendar</h2><Btn onClick={() => { setEditing(null); setShowForm(true); }}>+ Schedule</Btn></div>
 
       <Card>
-        {token ? (
-          <div className="row"><div className="grow"><div className="item-title">Google Calendar connected</div></div><Btn variant="ghost" onClick={disconnect}>Disconnect</Btn></div>
-        ) : (
-          <div className="row"><div className="grow"><div className="item-title">Google Calendar not connected</div><div className="item-sub">Connect to see both calendars together.</div></div><Btn onClick={connect}>Connect</Btn></div>
+        {status === "connected" && (
+          <div className="row"><div className="grow"><div className="item-title">🟢 Google Calendar connected</div><div className="item-sub">Refreshes automatically — nothing to do.</div></div></div>
         )}
+        {status === "checking" && <div className="item-title">Checking Google Calendar connection…</div>}
+        {status === "not_configured" && (
+          <div>
+            <div className="item-title">Google Calendar isn't set up yet</div>
+            <p className="rule-note">One-time setup: visit <code>/api/google-auth-start</code> on this site, approve access, then follow the instructions shown to finish connecting.</p>
+          </div>
+        )}
+        {status === "error" && <div className="item-title">Couldn't reach Google Calendar — check back shortly.</div>}
       </Card>
 
       <div className="week-nav">
