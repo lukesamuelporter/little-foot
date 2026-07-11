@@ -35,6 +35,14 @@
   .brand{display:flex;gap:8px;align-items:center;font-family:'Fraunces',serif;font-weight:600;font-size:19px;}
   .refresh-btn{width:34px;height:34px;border-radius:50%;background:var(--paper);border:1px solid var(--line);font-size:16px;cursor:pointer;color:var(--ink);}
 
+  .status-strip{display:flex;gap:7px;padding:9px 18px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--line);}
+  .status-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:6px 11px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;white-space:nowrap;}
+  .status-chip .sc-sub{font-weight:600;color:var(--ink-soft);}
+  .status-chip.good{background:#EDF3EB;border-color:#C9DAC4;}
+  .status-chip.warn{background:#FBEAD3;border-color:#EAD1A6;}
+  .status-chip.urgent{background:#F6DAD6;border-color:#E5B3AC;color:var(--rose);}
+  .status-chip.urgent .sc-sub{color:var(--rose);}
+
   .back-row{padding:10px 18px 0;}
   .back-btn{background:none;border:none;color:var(--marigold-deep);font-weight:700;font-size:14px;cursor:pointer;padding:4px 0;}
 
@@ -42,11 +50,11 @@
   .screen-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
   .screen-head h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin:0;}
 
-  .today-hero{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .today-hero{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
   .today-hero h1{font-family:'Fraunces',serif;font-size:25px;margin:0;font-weight:600;}
   .today-hero p{margin:2px 0 0;color:var(--ink-soft);font-size:14px;}
 
-  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
   .stat-label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
   .stat-value{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-top:3px;}
   .stat-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
@@ -97,13 +105,16 @@
 
   .hint-banner{background:#FBEAD3;color:var(--marigold-deep);font-size:13px;font-weight:700;padding:11px 13px;border-radius:12px;margin-bottom:13px;display:flex;align-items:center;gap:6px;}
   .hint-banner.sleeping{background:#E4EAF0;color:var(--sky);cursor:pointer;}
+  .hint-banner.urgent{background:#F6DAD6;color:var(--rose);}
 
   .quick-actions{display:flex;gap:8px;flex-shrink:0;}
-  .quick-actions.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+  .quick-actions.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .grid-tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
   .grid-icon{font-size:27px;}
+  .more-group{margin-bottom:18px;}
+  .more-group-title{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;}
 
   .journal-photo{width:100%;border-radius:10px;margin-top:9px;display:block;}
 
@@ -123,8 +134,6 @@
   .pct-badge{font-size:11px;font-weight:700;color:var(--marigold-deep);background:#FBEAD3;padding:2px 8px;border-radius:20px;margin-left:8px;}
   .rule-note{font-size:12px;color:var(--ink-soft);line-height:1.4;margin:10px 0 0;}
   .chart-empty{font-size:12px;color:var(--ink-soft);margin:4px 0 0;}
-
-  .hint-banner.urgent{background:#F6DAD6;color:var(--rose);}
 
   .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .summary-grid .stat-value{font-size:18px;}
@@ -173,8 +182,21 @@
   .cal-empty{font-size:12px;color:var(--ink-soft);padding:6px 0;}
   .cal-item{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:13px;cursor:pointer;text-decoration:none;color:var(--ink);}
   .cal-item.google{border-style:dashed;color:var(--ink-soft);}
-  .cal-item-label{flex:1;font-weight:600;}
-  .cal-item-time{font-size:12px;color:var(--ink-soft);}
+  .cal-item-label{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .cal-item-time{font-size:12px;color:var(--ink-soft);flex-shrink:0;}
+  .cal-item-time.overdue{color:var(--rose);font-weight:700;}
+  .cal-item-time.now{color:var(--moss);font-weight:700;}
+
+  .log-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+  .log-card-head .item-title{font-family:'Fraunces',serif;font-size:16px;}
+  .side-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .side-btn{border:1px solid var(--line);background:var(--cream);border-radius:12px;padding:15px 10px;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink);}
+
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:12px;padding:10px 15px;font-size:13px;font-weight:600;display:flex;gap:14px;align-items:center;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap;}
+  .toast button{background:none;border:none;color:var(--marigold);font-weight:800;font-size:13px;cursor:pointer;padding:0;}
+
+  .strip-legend{display:flex;gap:14px;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:6px;flex-wrap:wrap;}
+  .strip-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
 </style>
 </head>
 <body>
@@ -226,11 +248,27 @@ function deepMerge(def, loaded) {
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
+/* Local-timezone date helpers (toISOString would roll to tomorrow's date during evening hours) */
+function localDateStr(d) {
+  const dt = d || new Date();
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+const todayStr = () => localDateStr(new Date());
+const nowTime = () => new Date().toTimeString().slice(0, 5);
+function dtFrom(date, time) { return new Date(`${date}T${time || "00:00"}:00`); }
+function toMin(t) { if (!t) return 0; const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
 function fmtDate(d) {
   if (!d) return "";
   const dt = new Date(d + (d.length <= 10 ? "T00:00:00" : ""));
   if (isNaN(dt)) return d;
   return dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function fmtShortDate(d) {
+  if (!d) return "";
+  const dt = new Date(d + "T00:00:00");
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 function fmtTime(t) {
   if (!t) return "";
@@ -238,6 +276,9 @@ function fmtTime(t) {
   const ap = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
+}
+function fmtClock(dt) {
+  return dt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 function ageString(dob) {
   if (!dob) return "";
@@ -258,9 +299,7 @@ function ageString(dob) {
 }
 function minutesBetween(start, end) {
   if (!start || !end) return null;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  let mins = toMin(end) - toMin(start);
   if (mins < 0) mins += 24 * 60;
   return mins;
 }
@@ -269,6 +308,49 @@ function durLabel(mins) {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function agoLabel(dt) {
+  const m = Math.max(0, Math.round((Date.now() - dt.getTime()) / 60000));
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m ago`;
+}
+function inLabel(dt) {
+  const m = Math.round((dt.getTime() - Date.now()) / 60000);
+  if (m <= 0) return "now";
+  if (m < 60) return `in ${m}m`;
+  const h = Math.floor(m / 60);
+  return `in ${h}h ${m % 60}m`;
+}
+
+/* ---------- Shared status derivation (used by status strip + Today) ---------- */
+function deriveStatus(data) {
+  const byDT = (a, b) => `${b.date} ${b.time || ""}`.localeCompare(`${a.date} ${a.time || ""}`);
+  const lastFeed = [...data.nursing].sort(byDT)[0] || null;
+  const lastFeedDt = lastFeed ? dtFrom(lastFeed.date, lastFeed.time) : null;
+  const lastDiaper = [...data.diapers].sort(byDT)[0] || null;
+  const lastDiaperDt = lastDiaper ? dtFrom(lastDiaper.date, lastDiaper.time) : null;
+  let lastWakeDt = null;
+  data.sleep.forEach((s) => {
+    if (!s.end || !s.date || !s.start) return;
+    let e = dtFrom(s.date, s.end);
+    if (toMin(s.end) < toMin(s.start)) e = new Date(e.getTime() + 86400000);
+    if (!lastWakeDt || e > lastWakeDt) lastWakeDt = e;
+  });
+  return { lastFeed, lastFeedDt, lastDiaper, lastDiaperDt, lastWakeDt };
+}
+
+/* Typical wake windows by age in months (approximate, for gentle suggestions only) */
+function wakeWindowMin(m) {
+  if (m == null || isNaN(m) || m < 0) return null;
+  if (m < 1) return [35, 60];
+  if (m < 2) return [45, 75];
+  if (m < 4) return [75, 105];
+  if (m < 6) return [105, 150];
+  if (m < 8) return [150, 210];
+  if (m < 11) return [165, 240];
+  if (m < 14) return [180, 300];
+  return [240, 360];
 }
 
 /* ---------- WHO growth percentile estimate (approximate — reference only) ---------- */
@@ -280,6 +362,7 @@ const WHO_HEIGHT_CM = {
   boy: { 0: 49.9, 1: 54.7, 2: 58.4, 3: 61.4, 4: 63.9, 5: 65.9, 6: 67.6, 9: 72.0, 12: 75.7, 15: 79.1, 18: 82.3, 21: 85.1, 24: 87.8 },
   girl: { 0: 49.1, 1: 53.7, 2: 57.1, 3: 59.8, 4: 62.1, 5: 64.0, 6: 65.7, 9: 70.1, 12: 74.0, 15: 77.5, 18: 80.7, 21: 83.7, 24: 86.4 },
 };
+const KG_PER_LB = 0.453592, CM_PER_IN = 2.54;
 function erf(x) {
   const sign = x < 0 ? -1 : 1; x = Math.abs(x);
   const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
@@ -382,6 +465,24 @@ async function pushScheduleToGoogle(token, item) {
   if (!res.ok) throw new Error("Failed to create Google Calendar event");
   return res.json();
 }
+/* Next occurrences of routine/schedule items over the coming 48h */
+function upcomingSchedule(schedule, count = 3) {
+  const now = new Date();
+  const out = [];
+  for (let off = 0; off < 2; off++) {
+    const d = new Date(now); d.setDate(d.getDate() + off);
+    const dow = d.getDay();
+    const ds = localDateStr(d);
+    schedule.forEach((item) => {
+      if (!item.time) return;
+      if (item.days && item.days.length > 0 && !item.days.includes(dow)) return;
+      const dt = dtFrom(ds, item.time);
+      if (dt > now) out.push({ dt, item });
+    });
+  }
+  out.sort((a, b) => a.dt - b.dt);
+  return out.slice(0, count);
+}
 
 /* ---------- Small UI atoms ---------- */
 function Foot({ size = 18, color = "currentColor" }) {
@@ -441,17 +542,17 @@ function startOfWeek(d) {
 }
 function groupByPeriod(items, dateField) {
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const todayStr = now.toISOString().slice(0, 10);
+  const today = todayStr();
   const groups = { today: [], recentDays: {}, weeks: {}, months: {} };
   items.forEach((item) => {
     const raw = item[dateField];
     if (!raw) { groups.today.push(item); return; }
     const d = new Date(raw + "T00:00:00");
     const diffDays = Math.floor((now - d) / 86400000);
-    if (raw === todayStr) groups.today.push(item);
+    if (raw === today) groups.today.push(item);
     else if (diffDays >= 1 && diffDays <= 7) (groups.recentDays[raw] = groups.recentDays[raw] || []).push(item);
     else if (diffDays > 7 && diffDays <= 56) {
-      const wk = startOfWeek(d).toISOString().slice(0, 10);
+      const wk = localDateStr(startOfWeek(d));
       (groups.weeks[wk] = groups.weeks[wk] || []).push(item);
     } else {
       const mk = raw.slice(0, 7);
@@ -478,7 +579,7 @@ function GroupedTimeline({ items, dateField = "date", timeField = "time", render
   const weekKeys = Object.keys(groups.weeks).sort((a, b) => b.localeCompare(a));
   const monthKeys = Object.keys(groups.months).sort((a, b) => b.localeCompare(a));
   const byTimeDesc = (arr) => [...arr].sort((a, b) => String(b[timeField] || "").localeCompare(String(a[timeField] || "")));
-  const byDateDesc = (arr) => [...arr].sort((a, b) => String(b[dateField] || "").localeCompare(String(a[dateField] || "")));
+  const byDateDesc = (arr) => [...arr].sort((a, b) => `${b[dateField] || ""} ${b[timeField] || ""}`.localeCompare(`${a[dateField] || ""} ${a[timeField] || ""}`));
 
   return (
     <div className="grouped-timeline">
@@ -494,8 +595,8 @@ function GroupedTimeline({ items, dateField = "date", timeField = "time", render
       })}
       {weekKeys.map((key) => {
         const weekItems = byDateDesc(groups.weeks[key]);
-        const end = new Date(key); end.setDate(end.getDate() + 6);
-        return <CollapsibleGroup key={key} label={`Week of ${fmtDate(key)} – ${fmtDate(end.toISOString().slice(0, 10))}`} summary={summarize(weekItems)}>{weekItems.map(renderEntry)}</CollapsibleGroup>;
+        const end = new Date(key + "T00:00:00"); end.setDate(end.getDate() + 6);
+        return <CollapsibleGroup key={key} label={`Week of ${fmtDate(key)} – ${fmtDate(localDateStr(end))}`} summary={summarize(weekItems)}>{weekItems.map(renderEntry)}</CollapsibleGroup>;
       })}
       {monthKeys.map((key) => {
         const monthItems = byDateDesc(groups.months[key]);
@@ -511,7 +612,7 @@ function GroupedTimeline({ items, dateField = "date", timeField = "time", render
 
 /* ---------- Generic field + form ---------- */
 function FieldInput({ field, value, onChange }) {
-  const { key, type, options, label } = field;
+  const { key, type, options } = field;
   if (type === "textarea")
     return <textarea rows={3} value={value || ""} onChange={(e) => onChange(key, e.target.value)} />;
   if (type === "select")
@@ -532,7 +633,7 @@ function FieldInput({ field, value, onChange }) {
     />
   );
 }
-function EntryForm({ fields, initial, title, onCancel, onSave }) {
+function EntryForm({ fields, initial, title, onCancel, onSave, onDelete }) {
   const [vals, setVals] = useState(initial || {});
   const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
   return (
@@ -551,6 +652,7 @@ function EntryForm({ fields, initial, title, onCancel, onSave }) {
       </div>
       <div className="sheet-actions">
         <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+        {onDelete && vals.id && <Btn variant="danger" onClick={() => onDelete(vals.id)}>Delete</Btn>}
         <Btn
           onClick={() => {
             if (fields.some((f) => f.required && !vals[f.key])) {
@@ -568,7 +670,7 @@ function EntryForm({ fields, initial, title, onCancel, onSave }) {
 }
 
 /* ---------- Generic list section (config-driven) ---------- */
-function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle, renderSub, tone, onAdd, onUpdate, onDelete, emptyText, extraAction, grouped, summarize }) {
+function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle, renderSub, tone, onAdd, onUpdate, onDelete, emptyText, extraAction }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -599,11 +701,7 @@ function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle
         <Btn onClick={() => setShowForm(true)}>+ Add</Btn>
       </div>
       {items.length === 0 && <EmptyState text={emptyText} />}
-      {items.length > 0 && (
-        grouped
-          ? <GroupedTimeline items={items} dateField={sortKey} renderEntry={renderCard} summarize={summarize || ((arr) => `${arr.length}`)} />
-          : <div className="list">{sorted.map(renderCard)}</div>
-      )}
+      {items.length > 0 && <div className="list">{sorted.map(renderCard)}</div>}
       {(showForm || editing) && (
         <Sheet onClose={() => { setShowForm(false); setEditing(null); }}>
           <EntryForm
@@ -682,22 +780,395 @@ const VACCINE_FIELDS = [
   { key: "notes", label: "Notes", type: "textarea" },
 ];
 
-/* ---------- Growth (chart + WHO percentile estimate + printable doctor summary) ---------- */
-function GrowthChart({ items, metric, color }) {
-  const pts = [...items]
-    .filter((i) => i[metric] !== undefined && i[metric] !== null && i[metric] !== "")
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-  if (pts.length < 2) return <p className="chart-empty">Add at least two measurements to see a trend line.</p>;
-  const values = pts.map((p) => parseFloat(p[metric]));
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = max - min || 1;
-  const w = 300, h = 90, pad = 10;
-  const coord = (i, v) => [pad + (i / (pts.length - 1)) * (w - 2 * pad), h - pad - ((v - min) / range) * (h - 2 * pad)];
-  const points = pts.map((p, i) => coord(i, parseFloat(p[metric])).join(",")).join(" ");
+/* ---------- Status strip (persistent, answers the 3am questions on every screen) ---------- */
+function StatusStrip({ data, setView }) {
+  const { lastFeed, lastFeedDt, lastDiaper, lastDiaperDt, lastWakeDt } = deriveStatus(data);
+  const remindMs = (parseFloat(data.profile.reminderHours) || 3) * 3600000;
+
+  let feedTone = "good";
+  if (lastFeedDt) {
+    const r = (Date.now() - lastFeedDt.getTime()) / remindMs;
+    feedTone = r >= 1 ? "urgent" : r >= 0.66 ? "warn" : "good";
+  }
+  const active = data.activeSleep;
+
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => { const [x, y] = coord(i, parseFloat(p[metric])); return <circle key={i} cx={x} cy={y} r="2.6" fill={color} />; })}
+    <div className="status-strip">
+      <button className={`status-chip ${feedTone}`} onClick={() => setView("log")}>
+        🍼 {lastFeedDt ? <>
+          <span>{agoLabel(lastFeedDt)}</span>
+          <span className="sc-sub">{lastFeed.side || ""}{lastFeed.by ? ` · ${lastFeed.by}` : ""}</span>
+        </> : <span className="sc-sub">No feeds yet</span>}
+      </button>
+      <button className="status-chip" onClick={() => setView("log")}>
+        {active ? <>
+          🌙 <span>Asleep {durLabel(Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000))}</span>
+        </> : lastWakeDt ? <>
+          ☀️ <span>Awake {durLabel(Math.max(0, Math.round((Date.now() - lastWakeDt.getTime()) / 60000)))}</span>
+        </> : <>😴 <span className="sc-sub">No sleep yet</span></>}
+      </button>
+      <button className="status-chip" onClick={() => setView("log")}>
+        🚼 {lastDiaperDt ? <>
+          <span>{DIAPER_EMOJI[lastDiaper.type] || ""} {agoLabel(lastDiaperDt)}</span>
+        </> : <span className="sc-sub">No diapers yet</span>}
+      </button>
+    </div>
+  );
+}
+
+/* ---------- 7-day pattern strip: sleep blocks, feed dots, diaper ticks on a 24h track ---------- */
+function PatternStrip({ sleep, nursing, diapers, activeSleep }) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return localDateStr(d);
+  });
+  const daySet = new Set(days);
+
+  // Split sleep sessions that cross midnight into per-day segments (minutes 0–1440)
+  const segs = {};
+  const pushSeg = (date, s, e) => { if (daySet.has(date) && e > s) (segs[date] = segs[date] || []).push([s, e]); };
+  sleep.forEach((en) => {
+    if (!en.date || !en.start || !en.end) return;
+    const s = toMin(en.start), e = toMin(en.end);
+    if (e >= s) pushSeg(en.date, s, e);
+    else {
+      pushSeg(en.date, s, 1440);
+      const nd = new Date(en.date + "T00:00:00"); nd.setDate(nd.getDate() + 1);
+      pushSeg(localDateStr(nd), 0, e);
+    }
+  });
+  if (activeSleep) {
+    const startDt = new Date(activeSleep.startedAt);
+    let cur = new Date(startDt);
+    const now = new Date();
+    while (cur <= now) {
+      const ds = localDateStr(cur);
+      const dayStart = new Date(ds + "T00:00:00");
+      const s = Math.max(0, Math.round((Math.max(startDt, dayStart) - dayStart) / 60000));
+      const dayEnd = new Date(dayStart.getTime() + 86400000);
+      const e = Math.min(1440, Math.round((Math.min(now, dayEnd) - dayStart) / 60000));
+      pushSeg(ds, s, e);
+      cur = dayEnd;
+    }
+  }
+
+  const labelW = 46, trackW = 300, rowH = 24, trackH = 11;
+  const h = days.length * rowH + 16;
+  const X = (min) => labelW + (min / 1440) * trackW;
+  const dayLabel = (ds, i) => (i === 0 ? "Today" : new Date(ds + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }));
+
+  return (
+    <Card>
+      <div className="stat-label" style={{ marginBottom: 6 }}>Last 7 days · patterns</div>
+      <svg viewBox={`0 0 ${labelW + trackW + 6} ${h}`} width="100%" style={{ display: "block" }}>
+        {days.map((ds, i) => {
+          const y = i * rowH + 4;
+          const mid = y + trackH / 2;
+          return (
+            <g key={ds}>
+              <text x={0} y={mid + 4} fontSize="10" fontWeight="700" fill="var(--ink-soft)">{dayLabel(ds, i)}</text>
+              <rect x={labelW} y={y} width={trackW} height={trackH} rx={5} fill="var(--cream)" stroke="var(--line)" strokeWidth="0.6" />
+              {(segs[ds] || []).map(([s, e], j) => (
+                <rect key={j} x={X(s)} y={y} width={Math.max(2, X(e) - X(s))} height={trackH} rx={5} fill="var(--sky)" opacity="0.85" />
+              ))}
+              {diapers.filter((d) => d.date === ds && d.time).map((d, j) => (
+                <rect key={"d" + j} x={X(toMin(d.time)) - 1} y={y - 2} width={2} height={trackH + 4} fill="var(--marigold)" />
+              ))}
+              {nursing.filter((n) => n.date === ds && n.time).map((n, j) => (
+                <circle key={"f" + j} cx={X(toMin(n.time))} cy={mid} r={3} fill="var(--moss)" />
+              ))}
+            </g>
+          );
+        })}
+        {[0, 360, 720, 1080, 1440].map((m, i) => (
+          <text key={m} x={X(m)} y={h - 2} fontSize="9" fill="var(--ink-soft)" textAnchor={i === 0 ? "start" : i === 4 ? "end" : "middle"}>
+            {["12a", "6a", "12p", "6p", "12a"][i]}
+          </text>
+        ))}
+      </svg>
+      <div className="strip-legend">
+        <span><span className="dot" style={{ background: "var(--sky)" }} />Sleep</span>
+        <span><span className="dot" style={{ background: "var(--moss)" }} />Feed</span>
+        <span><span className="dot" style={{ background: "var(--marigold)" }} />Diaper</span>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- Log screen: feed, sleep, and diaper capture in one place ---------- */
+const MINUTES_AGO_OPTIONS = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120];
+function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSolid, onStartSleep, onStopSleep, onAddSleep, onQuickDiaper, onAddDiaper }) {
+  const [sheet, setSheet] = useState(null); // "feed" | "solid" | "sleep" | "diaper"
+  const [sleepType, setSleepType] = useState("Nap");
+  const [minutesAgo, setMinutesAgo] = useState(0);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!data.activeFeeding && !data.activeSleep) return;
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [data.activeFeeding, data.activeSleep]);
+
+  const lastNursing = useMemo(
+    () => [...data.nursing].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0],
+    [data.nursing]
+  );
+  const nextSide = lastNursing?.side === "Left" ? "Right" : lastNursing?.side === "Right" ? "Left" : null;
+  const active = data.activeFeeding;
+  const asleep = data.activeSleep;
+
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>➕ Log</h2></div>
+
+      {/* Feeding */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🍼 Feeding</div>
+          <button className="link-btn" onClick={() => setSheet("feed")}>Log past feeding</button>
+        </div>
+        {active ? (
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">Feeding… {durLabel(Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000))} · {active.side}</div>
+              <div className="item-sub">Started {fmtTime(active.start)}</div>
+            </div>
+            <Btn variant="danger" onClick={onStopFeeding}>Stop</Btn>
+          </div>
+        ) : (
+          <>
+            {nextSide && <div className="item-sub" style={{ marginBottom: 8 }}>Last side was {lastNursing.side} — try <strong>{nextSide}</strong> next.</div>}
+            <div className="side-btns">
+              <button className="side-btn" style={nextSide === "Left" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Left")}>▶ Left</button>
+              <button className="side-btn" style={nextSide === "Right" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Right")}>▶ Right</button>
+            </div>
+            <button className="link-btn" style={{ marginTop: 9 }} onClick={() => setSheet("solid")}>+ Solid food</button>
+          </>
+        )}
+      </Card>
+
+      {/* Sleep */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">😴 Sleep</div>
+          <button className="link-btn" onClick={() => setSheet("sleep")}>Log past sleep</button>
+        </div>
+        {asleep ? (
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">{asleep.type === "Nap" ? "😴" : "🌙"} Asleep — {durLabel(Math.round((Date.now() - new Date(asleep.startedAt).getTime()) / 60000))}</div>
+              <div className="item-sub">Started {fmtTime(asleep.start)}</div>
+            </div>
+            <Btn variant="danger" onClick={onStopSleep}>Wake up</Btn>
+          </div>
+        ) : (
+          <>
+            <div className="subtabs" style={{ marginBottom: 10 }}>
+              <button className={sleepType === "Nap" ? "subtab active" : "subtab"} onClick={() => setSleepType("Nap")}>Nap</button>
+              <button className={sleepType === "Night" ? "subtab active" : "subtab"} onClick={() => setSleepType("Night")}>Night sleep</button>
+            </div>
+            <div className="chip-row" style={{ marginBottom: 10 }}>
+              {MINUTES_AGO_OPTIONS.map((m) => (
+                <button key={m} className={minutesAgo === m ? "chip active" : "chip"} onClick={() => setMinutesAgo(m)}>
+                  {m === 0 ? "Just now" : `${m}m ago`}
+                </button>
+              ))}
+            </div>
+            <Btn full onClick={() => { onStartSleep(sleepType, minutesAgo); setMinutesAgo(0); }}>Start sleep</Btn>
+          </>
+        )}
+      </Card>
+
+      {/* Diaper */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🚼 Diaper</div>
+          <button className="link-btn" onClick={() => setSheet("diaper")}>Add with details</button>
+        </div>
+        <div className="quick-actions three">
+          <Btn variant="ghost" onClick={() => onQuickDiaper("Wet")}>💧 Wet</Btn>
+          <Btn variant="ghost" onClick={() => onQuickDiaper("Dirty")}>💩 Dirty</Btn>
+          <Btn variant="ghost" onClick={() => onQuickDiaper("Both")}>💧💩 Both</Btn>
+        </div>
+      </Card>
+
+      {sheet === "feed" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={NURSING_FIELDS} initial={{ date: todayStr(), time: nowTime() }} title="Log past feeding"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddNursing(v); setSheet(null); }} />
+        </Sheet>
+      )}
+      {sheet === "solid" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={SOLIDS_FIELDS} initial={{ date: todayStr() }} title="Log solid food"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddSolid(v); setSheet(null); }} />
+        </Sheet>
+      )}
+      {sheet === "sleep" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={SLEEP_FIELDS} initial={{ type: "Nap", date: todayStr() }} title="Log past sleep"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddSleep(v); setSheet(null); }} />
+        </Sheet>
+      )}
+      {sheet === "diaper" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={DIAPER_FIELDS} initial={{ date: todayStr(), time: nowTime() }} title="Log diaper"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddDiaper(v); setSheet(null); }} />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- History: one merged timeline of feeds, sleep, diapers, and solids ---------- */
+const HISTORY_KINDS = {
+  feed: { key: "nursing", fields: NURSING_FIELDS, label: "feeding" },
+  solid: { key: "solids", fields: SOLIDS_FIELDS, label: "solid food" },
+  sleep: { key: "sleep", fields: SLEEP_FIELDS, label: "sleep" },
+  diaper: { key: "diapers", fields: DIAPER_FIELDS, label: "diaper" },
+};
+function HistoryScreen({ data, updateIn, deleteFrom }) {
+  const [filter, setFilter] = useState("all");
+  const [editing, setEditing] = useState(null); // {kind, item}
+
+  const merged = useMemo(() => {
+    const arr = [];
+    data.nursing.forEach((i) => arr.push({ kind: "feed", wid: "f" + i.id, date: i.date, time: i.time || "", item: i }));
+    data.solids.forEach((i) => arr.push({ kind: "solid", wid: "o" + i.id, date: i.date, time: "", item: i }));
+    data.sleep.forEach((i) => arr.push({ kind: "sleep", wid: "s" + i.id, date: i.date, time: i.start || "", item: i }));
+    data.diapers.forEach((i) => arr.push({ kind: "diaper", wid: "d" + i.id, date: i.date, time: i.time || "", item: i }));
+    return filter === "all" ? arr : arr.filter((e) => e.kind === filter);
+  }, [data.nursing, data.solids, data.sleep, data.diapers, filter]);
+
+  const entryTitle = (e) => {
+    const i = e.item;
+    if (e.kind === "feed") return `🍼 ${i.side || "Feeding"}${i.duration ? ` · ${i.duration}m` : ""}`;
+    if (e.kind === "solid") return `🥣 ${i.food || "Solid food"}${i.reaction && i.reaction !== "None" ? ` — ${i.reaction}` : ""}`;
+    if (e.kind === "sleep") return `${i.type === "Night" ? "🌙" : "😴"} ${i.type || "Sleep"} · ${fmtTime(i.start)}${i.end ? ` – ${fmtTime(i.end)}` : ""}`;
+    return `${DIAPER_EMOJI[i.type] || "🚼"} ${i.type || "Diaper"}`;
+  };
+  const entrySub = (e) => {
+    const i = e.item;
+    const bits = [];
+    if (e.kind === "sleep") {
+      const mins = minutesBetween(i.start, i.end);
+      if (mins != null) bits.push(durLabel(mins));
+    } else if (i.time) bits.push(fmtTime(i.time));
+    if (i.by) bits.push(i.by);
+    return bits.join(" · ") || fmtDate(i.date);
+  };
+
+  const renderEntry = (e) => (
+    <Card key={e.wid} onClick={() => setEditing(e)}>
+      <div className="row">
+        <div className="grow">
+          <div className="item-title">{entryTitle(e)}</div>
+          <div className="item-sub">{entrySub(e)}</div>
+        </div>
+        <IconBtn variant="danger" onClick={(ev) => { ev.stopPropagation(); deleteFrom(HISTORY_KINDS[e.kind].key)(e.item.id); }}>✕</IconBtn>
+      </div>
+      {e.item.notes && <div className="item-notes">{e.item.notes}</div>}
+    </Card>
+  );
+  const summarize = (arr) => {
+    const c = { feed: 0, solid: 0, sleep: 0, diaper: 0 };
+    arr.forEach((e) => c[e.kind]++);
+    return [c.feed + c.solid ? `${c.feed + c.solid}🍼` : "", c.sleep ? `${c.sleep}😴` : "", c.diaper ? `${c.diaper}🚼` : ""].filter(Boolean).join(" ") || `${arr.length}`;
+  };
+
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>🕐 History</h2></div>
+      <PatternStrip sleep={data.sleep} nursing={data.nursing} diapers={data.diapers} activeSleep={data.activeSleep} />
+      <div className="chip-row" style={{ marginBottom: 12 }}>
+        {[["all", "All"], ["feed", "🍼 Feeds"], ["sleep", "😴 Sleep"], ["diaper", "🚼 Diapers"], ["solid", "🥣 Solids"]].map(([k, label]) => (
+          <button key={k} className={filter === k ? "chip active" : "chip"} onClick={() => setFilter(k)}>{label}</button>
+        ))}
+      </div>
+      <GroupedTimeline items={merged} renderEntry={renderEntry} summarize={summarize} />
+      {editing && (
+        <Sheet onClose={() => setEditing(null)}>
+          <EntryForm
+            fields={HISTORY_KINDS[editing.kind].fields} initial={editing.item} title={`Edit ${HISTORY_KINDS[editing.kind].label}`}
+            onCancel={() => setEditing(null)}
+            onSave={(v) => { updateIn(HISTORY_KINDS[editing.kind].key)(v); setEditing(null); }}
+            onDelete={(id) => { deleteFrom(HISTORY_KINDS[editing.kind].key)(id); setEditing(null); }}
+          />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Growth: WHO percentile band charts + big-number trend cards ---------- */
+function trendPerWeek(items, metric) {
+  const p = [...items].filter((i) => i[metric] !== undefined && i[metric] !== null && i[metric] !== "")
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+  if (p.length < 2) return null;
+  const a = p[p.length - 2], b = p[p.length - 1];
+  const days = (new Date(b.date + "T00:00:00") - new Date(a.date + "T00:00:00")) / 86400000;
+  if (days <= 0) return null;
+  return (parseFloat(b[metric]) - parseFloat(a[metric])) / (days / 7);
+}
+function GrowthChart({ items, metric, color, profile }) {
+  const isW = metric === "weight";
+  const conv = profile.units === "metric" ? 1 : (isW ? KG_PER_LB : CM_PER_IN); // displayValue * conv = metric value
+  const pts = [...items]
+    .filter((i) => i[metric] !== undefined && i[metric] !== null && i[metric] !== "" && i.date)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map((p) => ({ date: p.date, v: parseFloat(p[metric]), t: new Date(p.date + "T00:00:00").getTime() }));
+  if (pts.length < 2) return <p className="chart-empty">Add at least two measurements to see a trend.</p>;
+
+  const t0 = pts[0].t, tN = pts[pts.length - 1].t, span = Math.max(1, tN - t0);
+  const w = 330, h = 145, padL = 40, padR = 14, padT = 14, padB = 22;
+  const iw = w - padL - padR, ih = h - padT - padB;
+  const X = (t) => padL + ((t - t0) / span) * iw;
+
+  let band = null;
+  if (profile.sex && profile.dob) {
+    const table = (isW ? WHO_WEIGHT_KG : WHO_HEIGHT_CM)[profile.sex];
+    if (table) {
+      const cv = isW ? 0.13 : 0.045, z = 1.2816; // 10th–90th percentile band
+      band = pts.map((p) => {
+        const m = monthsBetween(profile.dob, p.date);
+        const med = interpWHO(table, m);
+        const sd = med * cv;
+        return { t: p.t, up: (med + z * sd) / conv, lo: (med - z * sd) / conv, med: med / conv };
+      });
+    }
+  }
+
+  const vals = pts.map((p) => p.v);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (band) { lo = Math.min(lo, ...band.map((b) => b.lo)); hi = Math.max(hi, ...band.map((b) => b.up)); }
+  const padV = (hi - lo || 1) * 0.08; lo -= padV; hi += padV;
+  const Y = (v) => padT + (1 - (v - lo) / (hi - lo)) * ih;
+
+  const linePts = pts.map((p) => `${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
+  const gridVals = [lo + padV, (lo + hi) / 2, hi - padV];
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ display: "block" }}>
+      {gridVals.map((v, i) => (
+        <g key={i}>
+          <line x1={padL} x2={w - padR} y1={Y(v)} y2={Y(v)} stroke="var(--line)" strokeWidth="0.7" />
+          <text x={padL - 5} y={Y(v) + 3.5} fontSize="9.5" fill="var(--ink-soft)" textAnchor="end">{v.toFixed(1)}</text>
+        </g>
+      ))}
+      {band && (
+        <>
+          <polygon
+            points={band.map((b) => `${X(b.t).toFixed(1)},${Y(b.up).toFixed(1)}`).join(" ") + " " + [...band].reverse().map((b) => `${X(b.t).toFixed(1)},${Y(b.lo).toFixed(1)}`).join(" ")}
+            fill={color} opacity="0.11"
+          />
+          <polyline points={band.map((b) => `${X(b.t).toFixed(1)},${Y(b.med).toFixed(1)}`).join(" ")} fill="none" stroke={color} strokeWidth="1" strokeDasharray="4 4" opacity="0.4" />
+        </>
+      )}
+      <polyline points={linePts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => <circle key={i} cx={X(p.t)} cy={Y(p.v)} r="3" fill={color} stroke="var(--paper)" strokeWidth="1.2" />)}
+      <text x={Math.min(X(last.t), w - padR - 4)} y={Y(last.v) - 7} fontSize="10.5" fontWeight="700" fill={color} textAnchor="end">{last.v}</text>
+      <text x={padL} y={h - 4} fontSize="9.5" fill="var(--ink-soft)">{fmtShortDate(pts[0].date)}</text>
+      <text x={w - padR} y={h - 4} fontSize="9.5" fill="var(--ink-soft)" textAnchor="end">{fmtShortDate(last.date)}</text>
     </svg>
   );
 }
@@ -711,32 +1182,53 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
 
   const latestW = [...items].filter((i) => i.weight).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
   const latestH = [...items].filter((i) => i.height).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
-  const wKg = latestW ? parseFloat(latestW.weight) * (profile.units === "metric" ? 1 : 0.453592) : null;
-  const hCm = latestH ? parseFloat(latestH.height) * (profile.units === "metric" ? 1 : 2.54) : null;
+  const wKg = latestW ? parseFloat(latestW.weight) * (profile.units === "metric" ? 1 : KG_PER_LB) : null;
+  const hCm = latestH ? parseFloat(latestH.height) * (profile.units === "metric" ? 1 : CM_PER_IN) : null;
   const wPct = latestW ? whoPercentile(wKg, monthsBetween(profile.dob, latestW.date), profile.sex, "weight") : null;
   const hPct = latestH ? whoPercentile(hCm, monthsBetween(profile.dob, latestH.date), profile.sex, "height") : null;
+  const wTrend = trendPerWeek(items, "weight");
+  const hTrend = trendPerWeek(items, "height");
+  const trendLabel = (t, unit) => t == null ? "" : `${t >= 0 ? "↑" : "↓"} ${Math.abs(t).toFixed(t >= 1 ? 1 : 2)} ${unit}/wk`;
 
   return (
     <div className="screen">
       <div className="screen-head"><h2>📏 Growth</h2><Btn onClick={() => setShowForm(true)}>+ Add</Btn></div>
 
+      {(latestW || latestH) && (
+        <div className="stat-row">
+          {latestW && (
+            <Card>
+              <div className="stat-label">Weight</div>
+              <div className="stat-value">{latestW.weight} {wUnit}</div>
+              <div className="stat-sub">{trendLabel(wTrend, wUnit)}{wPct ? ` · ≈${wPct}th pct` : ""}</div>
+            </Card>
+          )}
+          {latestH && (
+            <Card>
+              <div className="stat-label">Height</div>
+              <div className="stat-value">{latestH.height} {hUnit}</div>
+              <div className="stat-sub">{trendLabel(hTrend, hUnit)}{hPct ? ` · ≈${hPct}th pct` : ""}</div>
+            </Card>
+          )}
+        </div>
+      )}
+
       {(hasWeight || hasHeight) && (
         <Card>
           {hasWeight && (
             <>
-              <div className="stat-label">Weight ({wUnit}){wPct && <span className="pct-badge">≈{wPct}th percentile</span>}</div>
-              <GrowthChart items={items} metric="weight" color="#B96F1F" />
+              <div className="stat-label">Weight ({wUnit})</div>
+              <GrowthChart items={items} metric="weight" color="#B96F1F" profile={profile} />
             </>
           )}
           {hasHeight && (
             <>
-              <div className="stat-label" style={{ marginTop: hasWeight ? 12 : 0 }}>Height ({hUnit}){hPct && <span className="pct-badge">≈{hPct}th percentile</span>}</div>
-              <GrowthChart items={items} metric="height" color="#5F7A5A" />
+              <div className="stat-label" style={{ marginTop: hasWeight ? 12 : 0 }}>Height ({hUnit})</div>
+              <GrowthChart items={items} metric="height" color="#5F7A5A" profile={profile} />
             </>
           )}
-          {(wPct || hPct) && !profile.sex && null}
-          {(wPct || hPct) && <p className="rule-note">Percentiles are estimated from WHO growth medians for reference only — your pediatrician's chart is the accurate one.</p>}
-          {!profile.sex && (hasWeight || hasHeight) && <p className="rule-note">Add baby's sex in Profile to see percentile estimates.</p>}
+          {profile.sex && profile.dob && <p className="rule-note">The shaded band is the approximate WHO 10th–90th percentile range for {profile.name || "baby"}'s age — staying anywhere inside it, on a steady curve, is what pediatricians look for. Your pediatrician's chart is the accurate one.</p>}
+          {!profile.sex && (hasWeight || hasHeight) && <p className="rule-note">Add baby's sex and birthdate in Profile to see the WHO percentile band behind the curve.</p>}
           <Btn variant="ghost" full onClick={() => window.print()}>🖨️ Print / save PDF for doctor</Btn>
         </Card>
       )}
@@ -768,9 +1260,9 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
 
       <div className="print-summary">
         <h1>{profile.name || "Baby"}'s growth summary</h1>
-        <p>DOB: {fmtDate(profile.dob) || "—"} &nbsp;·&nbsp; Printed {fmtDate(new Date().toISOString().slice(0, 10))}</p>
-        {hasWeight && (<><h3>Weight ({wUnit})</h3><GrowthChart items={items} metric="weight" color="#B96F1F" /></>)}
-        {hasHeight && (<><h3>Height ({hUnit})</h3><GrowthChart items={items} metric="height" color="#5F7A5A" /></>)}
+        <p>DOB: {fmtDate(profile.dob) || "—"} &nbsp;·&nbsp; Printed {fmtDate(todayStr())}</p>
+        {hasWeight && (<><h3>Weight ({wUnit})</h3><GrowthChart items={items} metric="weight" color="#B96F1F" profile={profile} /></>)}
+        {hasHeight && (<><h3>Height ({hUnit})</h3><GrowthChart items={items} metric="height" color="#5F7A5A" profile={profile} /></>)}
         <table className="print-table">
           <thead><tr><th>Date</th><th>Weight ({wUnit})</th><th>Height ({hUnit})</th><th>Head circ. ({hUnit})</th><th>Notes</th></tr></thead>
           <tbody>
@@ -785,10 +1277,29 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
 }
 
 /* ---------- Profile ---------- */
-function ProfileScreen({ profile, onSave }) {
+function ProfileScreen({ profile, onSave, deviceParent, setDeviceParent, onExport, onImport }) {
   const [vals, setVals] = useState(profile);
   useEffect(() => setVals(profile), [profile]);
   const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
+  const p1 = vals.parent1 || "Parent 1", p2 = vals.parent2 || "Parent 2";
+
+  function handleImportFile(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        if (!confirm("Replace all current data with this backup? This can't be undone.")) return;
+        onImport(parsed);
+      } catch (err) {
+        alert("That file isn't a valid Little Foot backup.");
+      }
+    };
+    r.readAsText(f);
+    e.target.value = "";
+  }
+
   return (
     <div className="screen">
       <div className="screen-head"><h2>👤 Profile</h2></div>
@@ -807,6 +1318,14 @@ function ProfileScreen({ profile, onSave }) {
         <label className="field"><span>Parent 1 name</span><input value={vals.parent1 || ""} onChange={(e) => set("parent1", e.target.value)} /></label>
         <label className="field"><span>Parent 2 name</span><input value={vals.parent2 || ""} onChange={(e) => set("parent2", e.target.value)} /></label>
         <label className="field">
+          <span>This phone belongs to (tags who logged each entry)</span>
+          <select value={deviceParent || ""} onChange={(e) => setDeviceParent(e.target.value)}>
+            <option value="">Not set</option>
+            <option value={p1}>{p1}</option>
+            <option value={p2}>{p2}</option>
+          </select>
+        </label>
+        <label className="field">
           <span>Units</span>
           <select value={vals.units || "imperial"} onChange={(e) => set("units", e.target.value)}>
             <option value="imperial">Imperial (lb / in)</option>
@@ -814,7 +1333,7 @@ function ProfileScreen({ profile, onSave }) {
           </select>
         </label>
         <label className="field">
-          <span>Remind me if no feeding logged for (hours)</span>
+          <span>Feeding interval (hours) — drives reminders &amp; "next feed" on Today</span>
           <input type="number" value={vals.reminderHours ?? 3} onChange={(e) => set("reminderHours", e.target.value)} />
         </label>
         <div className="field-group-label">Daily targets (for the Today rings)</div>
@@ -823,36 +1342,60 @@ function ProfileScreen({ profile, onSave }) {
         <label className="field"><span>Expected feeds/day</span><input type="number" value={vals.expectedFeeds ?? 8} onChange={(e) => set("expectedFeeds", e.target.value)} /></label>
         <Btn full onClick={() => onSave(vals)}>Save profile</Btn>
       </div>
+
+      <div className="card">
+        <div className="field-group-label" style={{ margin: "0 0 8px" }}>Your data</div>
+        <p className="rule-note" style={{ margin: "0 0 10px" }}>A safety copy is saved on this device automatically once a day. Download a backup file any time and keep it somewhere safe.</p>
+        <Btn variant="ghost" full onClick={onExport}>⬇️ Download backup (JSON)</Btn>
+        <label className="field" style={{ marginTop: 10 }}>
+          <span>Restore from a backup file</span>
+          <input type="file" accept="application/json,.json" onChange={handleImportFile} />
+        </label>
+      </div>
     </div>
   );
 }
 
-/* ---------- More menu ---------- */
-const MORE_ITEMS = [
-  { key: "diapers", icon: "🚼", label: "Diapers" },
-  { key: "growth", icon: "📏", label: "Growth" },
-  { key: "health", icon: "🩺", label: "Health" },
-  { key: "milestones", icon: "⭐", label: "Milestones" },
-  { key: "words", icon: "💬", label: "First words" },
-  { key: "journal", icon: "📓", label: "Journal" },
-  { key: "symptoms", icon: "🤒", label: "Symptoms" },
-  { key: "vaccines", icon: "💉", label: "Vaccines" },
-  { key: "prebirth", icon: "🤰", label: "Pre-Birth" },
-  { key: "ask", icon: "🤖", label: "Ask" },
-  { key: "profile", icon: "👤", label: "Profile" },
+/* ---------- More menu (grouped) ---------- */
+const MORE_GROUPS = [
+  { label: "Health", items: [
+    { key: "growth", icon: "📏", label: "Growth" },
+    { key: "health", icon: "🩺", label: "Health visits" },
+    { key: "symptoms", icon: "🤒", label: "Symptoms" },
+    { key: "vaccines", icon: "💉", label: "Vaccines" },
+  ]},
+  { label: "Memories", items: [
+    { key: "milestones", icon: "⭐", label: "Milestones" },
+    { key: "words", icon: "💬", label: "First words" },
+    { key: "journal", icon: "📓", label: "Journal" },
+  ]},
+  { label: "Planning", items: [
+    { key: "calendar", icon: "🗓️", label: "Calendar & routines" },
+    { key: "ask", icon: "🤖", label: "Ask" },
+  ]},
+  { label: "Setup", items: [
+    { key: "profile", icon: "👤", label: "Profile" },
+    { key: "prebirth", icon: "🗃️", label: "Archive (pre-birth)" },
+  ]},
 ];
+const MORE_KEYS = new Set(MORE_GROUPS.flatMap((g) => g.items.map((m) => m.key)));
 function MoreScreen({ setView }) {
   return (
     <div className="screen">
       <div className="screen-head"><h2>More</h2></div>
-      <div className="grid">
-        {MORE_ITEMS.map((m) => (
-          <button key={m.key} className="grid-tile" onClick={() => setView(m.key)}>
-            <span className="grid-icon">{m.icon}</span>
-            <span>{m.label}</span>
-          </button>
-        ))}
-      </div>
+      {MORE_GROUPS.map((g) => (
+        <div className="more-group" key={g.label}>
+          <p className="more-group-title">{g.label}</p>
+          <div className="grid">
+            {g.items.map((m) => (
+              <button key={m.key} className="grid-tile" onClick={() => setView(m.key)}>
+                <span className="grid-icon">{m.icon}</span>
+                <span>{m.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -887,7 +1430,7 @@ function JournalScreen({ items, profile, onAdd, onDelete }) {
     <div className="screen">
       <div className="screen-head">
         <h2>📓 Journal</h2>
-        <Btn onClick={() => { setVals({ date: new Date().toISOString().slice(0, 10), author: "", otherName: "", text: "", photo: null }); setShowForm(true); }}>+ Add</Btn>
+        <Btn onClick={() => { setVals({ date: todayStr(), author: "", otherName: "", text: "", photo: null }); setShowForm(true); }}>+ Add</Btn>
       </div>
       {sorted.length === 0 && <EmptyState text="No journal entries yet. Capture your first memory together." />}
       <div className="list">
@@ -936,222 +1479,7 @@ function JournalScreen({ items, profile, onAdd, onDelete }) {
   );
 }
 
-/* ---------- Sleep ---------- */
-const MINUTES_AGO_OPTIONS = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120];
-function StartSleepSheet({ onClose, onStart }) {
-  const [type, setType] = useState("Nap");
-  const [minutesAgo, setMinutesAgo] = useState(0);
-  return (
-    <>
-      <div className="sheet-head"><h3>Start sleep</h3><IconBtn onClick={onClose}>✕</IconBtn></div>
-      <div className="sheet-body">
-        <label className="field">
-          <span>Type</span>
-          <div className="subtabs">
-            <button className={type === "Nap" ? "subtab active" : "subtab"} onClick={() => setType("Nap")}>Nap</button>
-            <button className={type === "Night" ? "subtab active" : "subtab"} onClick={() => setType("Night")}>Night sleep</button>
-          </div>
-        </label>
-        <label className="field">
-          <span>When did it start?</span>
-          <div className="chip-row">
-            {MINUTES_AGO_OPTIONS.map((m) => (
-              <button key={m} className={minutesAgo === m ? "chip active" : "chip"} onClick={() => setMinutesAgo(m)}>
-                {m === 0 ? "Just now" : `${m}m ago`}
-              </button>
-            ))}
-          </div>
-        </label>
-      </div>
-      <div className="sheet-actions">
-        <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        <Btn onClick={() => { onStart(type, minutesAgo); onClose(); }}>Start</Btn>
-      </div>
-    </>
-  );
-}
-function SleepScreen({ items, active, onAdd, onUpdate, onDelete, onStart, onStop }) {
-  const [showStart, setShowStart] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => setTick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [active]);
-
-  const renderEntry = (item) => {
-    const mins = minutesBetween(item.start, item.end);
-    return (
-      <Card key={item.id} onClick={() => setEditing(item)}>
-        <div className="row">
-          <div className="grow">
-            <div className="item-title">{item.type === "Nap" ? "😴" : "🌙"} {item.type} · {fmtTime(item.start)}{item.end ? ` – ${fmtTime(item.end)}` : ""}</div>
-            <div className="item-sub">{fmtDate(item.date)}{mins != null ? ` · ${durLabel(mins)}` : ""}</div>
-          </div>
-          <IconBtn variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}>✕</IconBtn>
-        </div>
-        {item.notes && <div className="item-notes">{item.notes}</div>}
-      </Card>
-    );
-  };
-  const summarize = (arr) => {
-    const naps = arr.filter((i) => i.type === "Nap").length;
-    const totalMin = arr.reduce((s, i) => s + (minutesBetween(i.start, i.end) || 0), 0);
-    return `${naps} nap${naps === 1 ? "" : "s"} · ${durLabel(totalMin) || "0m"} total`;
-  };
-
-  return (
-    <div className="screen">
-      <div className="screen-head"><h2>😴 Sleep</h2><Btn onClick={() => setShowStart(true)}>+ Start</Btn></div>
-
-      {active ? (
-        <Card>
-          <div className="row">
-            <div className="grow">
-              <div className="item-title">{active.type === "Nap" ? "😴" : "🌙"} Asleep — {durLabel(Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000))}</div>
-              <div className="item-sub">Started {fmtTime(active.start)}</div>
-            </div>
-            <Btn variant="danger" onClick={onStop}>Wake up</Btn>
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <div className="row">
-            <div className="grow"><div className="item-title">Not currently sleeping</div></div>
-            <Btn variant="ghost" onClick={() => setShowStart(true)}>+ Start sleep</Btn>
-          </div>
-        </Card>
-      )}
-
-      {items.length === 0 && <EmptyState text="No sleep logged yet." />}
-      {items.length > 0 && <GroupedTimeline items={items} renderEntry={renderEntry} summarize={summarize} />}
-
-      {showStart && <Sheet onClose={() => setShowStart(false)}><StartSleepSheet onClose={() => setShowStart(false)} onStart={onStart} /></Sheet>}
-      {editing && (
-        <Sheet onClose={() => setEditing(null)}>
-          <EntryForm fields={SLEEP_FIELDS} initial={editing} title="Edit sleep" onCancel={() => setEditing(null)} onSave={(v) => { onUpdate(v); setEditing(null); }} />
-        </Sheet>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Feeding (nursing + solids sub-tabs) ---------- */
-function FeedingScreen({ nursing, solids, activeFeeding, onStartFeeding, onStopFeeding, onAddNursing, onUpdateNursing, onDeleteNursing, onAddSolid, onUpdateSolid, onDeleteSolid }) {
-  const [sub, setSub] = useState("nursing");
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!activeFeeding) return;
-    const t = setInterval(() => setTick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [activeFeeding]);
-  const lastNursing = useMemo(
-    () => [...nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0],
-    [nursing]
-  );
-  const nextSide = lastNursing?.side === "Left" ? "Right" : lastNursing?.side === "Right" ? "Left" : null;
-
-  return (
-    <div className="screen">
-      <div className="screen-head"><h2>🍼 Feeding</h2></div>
-      <div className="subtabs">
-        <button className={sub === "nursing" ? "subtab active" : "subtab"} onClick={() => setSub("nursing")}>Nursing</button>
-        <button className={sub === "solids" ? "subtab active" : "subtab"} onClick={() => setSub("solids")}>Solid foods</button>
-      </div>
-
-      {sub === "nursing" && (
-        <>
-          {nextSide && !activeFeeding && (
-            <div className="hint-banner"><Foot size={14} /> Last side was {lastNursing.side} — try <strong>{nextSide}</strong> next.</div>
-          )}
-          <Card>
-            {activeFeeding ? (
-              <div className="row">
-                <div className="grow">
-                  <div className="item-title">Feeding… {durLabel(Math.round((Date.now() - new Date(activeFeeding.startedAt).getTime()) / 60000))} · {activeFeeding.side}</div>
-                  <div className="item-sub">Started {fmtTime(activeFeeding.start)}</div>
-                </div>
-                <Btn variant="danger" onClick={onStopFeeding}>Stop</Btn>
-              </div>
-            ) : (
-              <div className="row">
-                <div className="grow"><div className="item-title">Start a live feeding timer</div></div>
-                <div className="quick-actions">
-                  <Btn variant="ghost" onClick={() => onStartFeeding(nextSide || "Left")}>▶ {nextSide || "Left"}</Btn>
-                </div>
-              </div>
-            )}
-          </Card>
-          <ListSection
-            title="Nursing" icon="" items={nursing} fields={NURSING_FIELDS} grouped
-            renderTitle={(i) => `${i.side || "Feeding"}${i.duration ? ` · ${i.duration} min` : ""}`}
-            renderSub={(i) => `${fmtDate(i.date)} · ${fmtTime(i.time)}`}
-            summarize={(arr) => `${arr.length} feeds · ${arr.reduce((s, i) => s + (parseInt(i.duration) || 0), 0)}m total`}
-            onAdd={onAddNursing} onUpdate={onUpdateNursing} onDelete={onDeleteNursing}
-            emptyText="No nursing sessions logged yet."
-          />
-        </>
-      )}
-      {sub === "solids" && (
-        <ListSection
-          title="Solid foods" icon="" items={solids} fields={SOLIDS_FIELDS}
-          renderTitle={(i) => `${i.food}${i.reaction ? ` — ${i.reaction}` : ""}`}
-          onAdd={onAddSolid} onUpdate={onUpdateSolid} onDelete={onDeleteSolid}
-          emptyText="No solid foods logged yet."
-        />
-      )}
-    </div>
-  );
-}
-
-/* ---------- Diapers ---------- */
-function DiaperScreen({ items, onAdd, onUpdate, onDelete }) {
-  const [editing, setEditing] = useState(null);
-  const today = new Date().toISOString().slice(0, 10);
-  const todayCount = items.filter((i) => i.date === today).length;
-  const quickLog = (type) => onAdd({ id: uid(), date: today, time: new Date().toTimeString().slice(0, 5), type });
-
-  const renderEntry = (item) => (
-    <Card key={item.id} onClick={() => setEditing(item)}>
-      <div className="row">
-        <span className="diaper-emoji">{DIAPER_EMOJI[item.type] || "🚼"}</span>
-        <div className="grow">
-          <div className="item-title">{item.type}</div>
-          <div className="item-sub">{fmtDate(item.date)} · {fmtTime(item.time)}</div>
-        </div>
-        <IconBtn variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}>✕</IconBtn>
-      </div>
-      {item.notes && <div className="item-notes">{item.notes}</div>}
-    </Card>
-  );
-  const summarize = (arr) => {
-    const wet = arr.filter((i) => i.type === "Wet").length;
-    const dirty = arr.filter((i) => i.type === "Dirty").length;
-    const both = arr.filter((i) => i.type === "Both").length;
-    return `${arr.length} total · ${wet + both}💧 ${dirty + both}💩`;
-  };
-
-  return (
-    <div className="screen">
-      <div className="screen-head"><h2>🚼 Diapers</h2><Badge tone="neutral">{todayCount} today</Badge></div>
-      <div className="quick-actions three">
-        <Btn variant="ghost" onClick={() => quickLog("Wet")}>💧 Wet</Btn>
-        <Btn variant="ghost" onClick={() => quickLog("Dirty")}>💩 Dirty</Btn>
-        <Btn variant="ghost" onClick={() => quickLog("Both")}>💧💩 Both</Btn>
-      </div>
-      {items.length === 0 && <EmptyState text="No diapers logged yet." />}
-      {items.length > 0 && <GroupedTimeline items={items} renderEntry={renderEntry} summarize={summarize} />}
-      {editing && (
-        <Sheet onClose={() => setEditing(null)}>
-          <EntryForm fields={DIAPER_FIELDS} initial={editing} title="Edit diaper" onCancel={() => setEditing(null)} onSave={(v) => { onUpdate(v); setEditing(null); }} />
-        </Sheet>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Pre-Birth: contraction tracker ---------- */
+/* ---------- Pre-Birth (archived): contraction tracker ---------- */
 function ContractionScreen({ items, onAdd, onDelete }) {
   const [active, setActive] = useState(null);
   const [, setTick] = useState(0);
@@ -1272,7 +1600,8 @@ function PreBirthScreen({ data, update }) {
   const patch = (fn) => update((prev) => ({ ...prev, prebirth: fn(prev.prebirth) }));
   return (
     <div className="screen">
-      <div className="screen-head"><h2>🤰 Pre-Birth</h2></div>
+      <div className="screen-head"><h2>🗃️ Archive</h2></div>
+      <p className="rule-note" style={{ margin: "0 0 12px" }}>From before {"the baby"} arrived — kept for the memories.</p>
       <div className="subtabs">
         <button className={sub === "contractions" ? "subtab active" : "subtab"} onClick={() => setSub("contractions")}>Contractions</button>
         <button className={sub === "bag" ? "subtab active" : "subtab"} onClick={() => setSub("bag")}>Hospital bag</button>
@@ -1316,8 +1645,8 @@ function AskScreen({ data, profile }) {
   function saveKey(k) { setApiKey(k); localStorage.setItem("lf_api_key", k); }
 
   function buildContext() {
-    const lastFeed = [...data.nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
-    const lastDiaper = [...data.diapers].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
+    const lastFeed = [...data.nursing].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
+    const lastDiaper = [...data.diapers].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
     return `Baby: ${profile.name || "unnamed"}, age: ${ageString(profile.dob)}. Last feeding: ${lastFeed ? `${lastFeed.date} ${lastFeed.time}, side ${lastFeed.side}` : "none logged"}. Last diaper: ${lastDiaper ? `${lastDiaper.date} ${lastDiaper.time}, ${lastDiaper.type}` : "none logged"}. Currently sleeping: ${data.activeSleep ? "yes" : "no"}.`;
   }
 
@@ -1374,20 +1703,25 @@ function AskScreen({ data, profile }) {
   );
 }
 
-/* ---------- Calendar / Schedule ---------- */
+/* ---------- Calendar & routines ---------- */
+const ROUTINE_PRESETS = [
+  { label: "🌙 Bedtime", item: { type: "sleep", label: "Bedtime", time: "19:00", durationMin: 660, days: [] } },
+  { label: "😴 Naptime", item: { type: "sleep", label: "Naptime", time: "13:00", durationMin: 60, days: [] } },
+  { label: "🍽️ Mealtime", item: { type: "feed", label: "Mealtime", time: "12:00", durationMin: 30, days: [] } },
+];
 function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
   const [vals, setVals] = useState(initial || { type: "sleep", label: "", time: "09:00", durationMin: 30, days: [], notes: "" });
   const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
   const toggleDay = (i) => setVals((s) => ({ ...s, days: s.days.includes(i) ? s.days.filter((d) => d !== i) : [...s.days, i].sort() }));
   return (
     <>
-      <div className="sheet-head"><h3>{initial ? "Edit" : "Add"} schedule item</h3><IconBtn onClick={onCancel}>✕</IconBtn></div>
+      <div className="sheet-head"><h3>{initial && initial.id ? "Edit" : "Add"} routine</h3><IconBtn onClick={onCancel}>✕</IconBtn></div>
       <div className="sheet-body">
         <label className="field">
           <span>Type</span>
           <select value={vals.type} onChange={(e) => set("type", e.target.value)}>
             <option value="sleep">Sleep / Nap</option>
-            <option value="feed">Feeding</option>
+            <option value="feed">Feeding / Meal</option>
             <option value="other">Other</option>
           </select>
         </label>
@@ -1395,7 +1729,7 @@ function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
         <label className="field"><span>Time</span><input type="time" value={vals.time} onChange={(e) => set("time", e.target.value)} /></label>
         <label className="field"><span>Expected duration (min)</span><input type="number" value={vals.durationMin} onChange={(e) => set("durationMin", e.target.value)} /></label>
         <label className="field">
-          <span>Days</span>
+          <span>Days (leave empty for every day)</span>
           <div className="chip-row">
             {DAYS_SHORT.map((d, i) => <button key={i} className={vals.days.includes(i) ? "chip active" : "chip"} onClick={() => toggleDay(i)}>{d}</button>)}
           </div>
@@ -1405,15 +1739,15 @@ function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
       </div>
       <div className="sheet-actions">
         <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
-        {initial && onDelete && <Btn variant="danger" onClick={() => onDelete(initial.id)}>Delete</Btn>}
+        {initial && initial.id && onDelete && <Btn variant="danger" onClick={() => onDelete(initial.id)}>Delete</Btn>}
         {onSync && <Btn variant="ghost" onClick={() => onSync({ ...vals, id: vals.id || uid() })}>📅 Sync</Btn>}
         <Btn onClick={() => { if (!vals.time) return alert("Set a time first."); onSave({ ...vals, id: vals.id || uid() }); }}>Save</Btn>
       </div>
     </>
   );
 }
-function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSchedule }) {
-  const { token, status } = useGoogleAuth();
+function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule, onDeleteSchedule }) {
+  const { token, status } = googleAuth;
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [googleEvents, setGoogleEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -1429,7 +1763,7 @@ function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSch
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(d.getDate() + i); return d; });
 
   const eventsForDay = (d) => {
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = localDateStr(d);
     return googleEvents.filter((ev) => (ev.start?.dateTime || ev.start?.date || "").slice(0, 10) === dateStr);
   };
   const scheduleForDay = (dayIndex) =>
@@ -1448,7 +1782,13 @@ function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSch
 
   return (
     <div className="screen">
-      <div className="screen-head"><h2>🗓️ Calendar</h2><Btn onClick={() => { setEditing(null); setShowForm(true); }}>+ Schedule</Btn></div>
+      <div className="screen-head"><h2>🗓️ Calendar &amp; routines</h2><Btn onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</Btn></div>
+
+      <div className="chip-row" style={{ marginBottom: 12 }}>
+        {ROUTINE_PRESETS.map((p) => (
+          <button key={p.label} className="chip" onClick={() => { setEditing({ ...p.item }); setShowForm(true); }}>{p.label}</button>
+        ))}
+      </div>
 
       <Card>
         {status === "connected" && (
@@ -1471,10 +1811,10 @@ function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSch
       </div>
 
       {days.map((d, i) => {
-        const dateStr = d.toISOString().slice(0, 10);
-        const isToday = dateStr === new Date().toISOString().slice(0, 10);
+        const dateStr = localDateStr(d);
+        const isToday = dateStr === todayStr();
         const dayEvents = eventsForDay(d);
-        const dayItems = scheduleForDay(i);
+        const dayItems = scheduleForDay(d.getDay());
         return (
           <div key={dateStr} className={isToday ? "cal-day today" : "cal-day"}>
             <div className="cal-day-label">{d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</div>
@@ -1501,7 +1841,7 @@ function CalendarScreen({ schedule, onAddSchedule, onUpdateSchedule, onDeleteSch
           <ScheduleForm
             initial={editing}
             onCancel={() => { setShowForm(false); setEditing(null); }}
-            onSave={(item) => { if (editing) onUpdateSchedule(item); else onAddSchedule(item); setShowForm(false); setEditing(null); }}
+            onSave={(item) => { if (editing && editing.id) onUpdateSchedule(item); else onAddSchedule(item); setShowForm(false); setEditing(null); }}
             onDelete={(id) => { onDeleteSchedule(id); setShowForm(false); setEditing(null); }}
             onSync={token ? handleSync : null}
           />
@@ -1534,14 +1874,75 @@ function ActivityRings({ sleepPct, diaperPct, feedPct }) {
   );
 }
 
+/* ---------- Up Next: routines, next feed estimate, nap window, and today's Google events ---------- */
+function UpNextCard({ data, token, setView }) {
+  const { profile, schedule } = data;
+  const [googleToday, setGoogleToday] = useState([]);
+  useEffect(() => {
+    if (!token) { setGoogleToday([]); return; }
+    const now = new Date();
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    fetchGoogleEvents(token, now.toISOString(), end.toISOString()).then(setGoogleToday).catch(() => setGoogleToday([]));
+  }, [token]);
+
+  const rows = [];
+  const { lastFeedDt, lastWakeDt } = deriveStatus(data);
+  const remindH = parseFloat(profile.reminderHours) || 3;
+
+  if (lastFeedDt) {
+    const due = new Date(lastFeedDt.getTime() + remindH * 3600000);
+    rows.push({ dt: due, icon: "🍼", label: "Next feed (est.)", right: due.getTime() < Date.now() ? `overdue ${durLabel(Math.round((Date.now() - due.getTime()) / 60000))}` : `${fmtClock(due)} · ${inLabel(due)}`, tone: due.getTime() < Date.now() ? "overdue" : "", onClick: () => setView("log") });
+  }
+  if (!data.activeSleep && lastWakeDt && profile.dob) {
+    const m = monthsBetween(profile.dob, todayStr());
+    const w = wakeWindowMin(m);
+    if (w) {
+      const s = new Date(lastWakeDt.getTime() + w[0] * 60000);
+      const e = new Date(lastWakeDt.getTime() + w[1] * 60000);
+      const past = Date.now() > e.getTime();
+      const open = !past && Date.now() >= s.getTime();
+      rows.push({ dt: s, icon: "😴", label: `Nap window ${fmtClock(s)}–${fmtClock(e)}`, right: past ? "may be overtired" : open ? "open now" : inLabel(s), tone: past ? "overdue" : open ? "now" : "", onClick: () => setView("log") });
+    }
+  }
+  upcomingSchedule(schedule, 3).forEach(({ dt, item }) => {
+    rows.push({ dt, icon: item.type === "sleep" ? "😴" : item.type === "feed" ? "🍼" : "📌", label: item.label || (item.type === "sleep" ? "Nap" : "Feeding"), right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", onClick: () => setView("calendar") });
+  });
+  googleToday.slice(0, 3).forEach((ev) => {
+    const dt = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
+    if (!dt) return;
+    rows.push({ dt, icon: "🔗", label: ev.summary || "(untitled)", right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", href: ev.htmlLink });
+  });
+  rows.sort((a, b) => a.dt - b.dt);
+  const shown = rows.slice(0, 5);
+
+  return (
+    <Card>
+      <div className="log-card-head">
+        <div className="item-title">⏱️ Up next</div>
+        <button className="link-btn" onClick={() => setView("calendar")}>Calendar &amp; routines</button>
+      </div>
+      {shown.length === 0 && <div className="item-sub">Nothing coming up. Add bedtime, naptime, or mealtime routines to see them here with a countdown.</div>}
+      {shown.map((r, i) => r.href ? (
+        <a key={i} className="cal-item google" href={r.href} target="_blank" rel="noreferrer">
+          <span>{r.icon}</span><span className="cal-item-label">{r.label}</span>
+          <span className={`cal-item-time ${r.tone}`}>{r.right}</span>
+        </a>
+      ) : (
+        <div key={i} className="cal-item" onClick={r.onClick}>
+          <span>{r.icon}</span><span className="cal-item-label">{r.label}</span>
+          <span className={`cal-item-time ${r.tone}`}>{r.right}</span>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
 /* ---------- Today dashboard ---------- */
-function TodayScreen({ data, setView, onQuickDiaper }) {
+function TodayScreen({ data, token, setView }) {
   const { profile, nursing, diapers, journal, activeSleep, sleep } = data;
-  const lastNursing = [...nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
-  const lastDiaper = [...diapers].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
   const lastJournal = [...journal].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
   const feedsToday = nursing.filter((n) => n.date === today);
   const diapersToday = diapers.filter((d) => d.date === today);
   const sleepToday = sleep.filter((s) => s.date === today);
@@ -1551,6 +1952,14 @@ function TodayScreen({ data, setView, onQuickDiaper }) {
   const expectedSleepMin = (parseFloat(profile.expectedSleepHours) || 14) * 60;
   const expectedDiapers = parseFloat(profile.expectedDiapers) || 6;
   const expectedFeeds = parseFloat(profile.expectedFeeds) || 8;
+
+  const yd = localDateStr(new Date(Date.now() - 86400000));
+  const ydFeeds = nursing.filter((n) => n.date === yd).length;
+  const ydSleepMin = sleep.filter((s) => s.date === yd).reduce((s, e) => s + (minutesBetween(e.start, e.end) || 0), 0);
+  const ydDiapers = diapers.filter((d) => d.date === yd);
+  const ydWet = ydDiapers.filter((d) => d.type === "Wet" || d.type === "Both").length;
+  const ydDirty = ydDiapers.filter((d) => d.type === "Dirty" || d.type === "Both").length;
+  const hasYesterday = ydFeeds > 0 || ydSleepMin > 0 || ydDiapers.length > 0;
 
   return (
     <div className="screen">
@@ -1563,10 +1972,12 @@ function TodayScreen({ data, setView, onQuickDiaper }) {
       </div>
 
       {activeSleep && (
-        <div className="hint-banner sleeping" onClick={() => setView("sleep")}>
+        <div className="hint-banner sleeping" onClick={() => setView("log")}>
           😴 Currently asleep ({activeSleep.type}) — tap to wake up
         </div>
       )}
+
+      <UpNextCard data={data} token={token} setView={setView} />
 
       <Card>
         <div className="rings-row">
@@ -1579,24 +1990,14 @@ function TodayScreen({ data, setView, onQuickDiaper }) {
         </div>
       </Card>
 
-      <div className="quick-actions three" style={{ marginTop: 4 }}>
-        <Btn variant="ghost" onClick={() => onQuickDiaper("Wet")}>💧 Wet</Btn>
-        <Btn variant="ghost" onClick={() => onQuickDiaper("Dirty")}>💩 Dirty</Btn>
-        <Btn variant="ghost" onClick={() => onQuickDiaper("Both")}>💧💩 Both</Btn>
-      </div>
-
-      <div className="stat-row">
-        <Card onClick={() => setView("feed")}>
-          <div className="stat-label">Last feeding</div>
-          <div className="stat-value">{lastNursing ? `${fmtTime(lastNursing.time)}` : "—"}</div>
-          <div className="stat-sub">{lastNursing ? lastNursing.side : "No sessions yet"}</div>
+      {hasYesterday && (
+        <Card onClick={() => setView("history")}>
+          <div className="stat-label">Yesterday at a glance</div>
+          <div className="item-sub" style={{ marginTop: 5 }}>
+            {ydFeeds} feed{ydFeeds === 1 ? "" : "s"} · {durLabel(ydSleepMin) || "0m"} sleep · {ydWet}💧 {ydDirty}💩
+          </div>
         </Card>
-        <Card onClick={() => setView("diapers")}>
-          <div className="stat-label">Last diaper</div>
-          <div className="stat-value">{lastDiaper ? `${DIAPER_EMOJI[lastDiaper.type] || ""} ${fmtTime(lastDiaper.time)}` : "—"}</div>
-          <div className="stat-sub">{lastDiaper ? lastDiaper.type : "None logged"}</div>
-        </Card>
-      </div>
+      )}
 
       <div className="screen-head" style={{ marginTop: 8 }}><h2>📓 Latest memory</h2></div>
       {lastJournal ? (
@@ -1615,12 +2016,10 @@ function TodayScreen({ data, setView, onQuickDiaper }) {
 /* ---------- Bottom nav ---------- */
 const NAV = [
   { key: "today", icon: "🏠", label: "Today" },
-  { key: "feed", icon: "🍼", label: "Feed" },
-  { key: "sleep", icon: "😴", label: "Sleep" },
-  { key: "calendar", icon: "🗓️", label: "Calendar" },
+  { key: "log", icon: "➕", label: "Log" },
+  { key: "history", icon: "🕐", label: "History" },
   { key: "more", icon: "☰", label: "More" },
 ];
-const MORE_KEYS = new Set(MORE_ITEMS.map((m) => m.key));
 
 function BottomNav({ view, setView }) {
   const activeTop = MORE_KEYS.has(view) ? "more" : view;
@@ -1637,20 +2036,54 @@ function BottomNav({ view, setView }) {
 }
 
 /* ---------- App ---------- */
+const ATTRIBUTED_KEYS = new Set(["nursing", "sleep", "diapers", "solids"]);
 function App() {
   const [data, setData] = useState(DEF);
   const [view, setView] = useState("today");
   const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState(null);
+  const [toast, setToast] = useState(null); // { msg, undo }
   const saveTimer = useRef(null);
+  const toastTimer = useRef(null);
+  const googleAuth = useGoogleAuth();
+
+  const [deviceParent, setDeviceParentState] = useState(() => localStorage.getItem("lf_device_parent") || "");
+  const setDeviceParent = (v) => { setDeviceParentState(v); localStorage.setItem("lf_device_parent", v); };
+
+  // Re-render every 30s so countdowns, "ago" labels, and auto quiet mode stay current
+  const [, setMinTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setMinTick((x) => x + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  function showToast(msg, undo) {
+    clearTimeout(toastTimer.current);
+    setToast({ msg, undo });
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+
+  /* Once-a-day safety copy: localStorage snapshot (last 7 kept) + optional baby_backups table */
+  function runBackup(payload) {
+    const day = todayStr();
+    try {
+      if (localStorage.getItem("lf_backup_day") === day) return;
+      localStorage.setItem("lf_backup_" + day, JSON.stringify(payload));
+      localStorage.setItem("lf_backup_day", day);
+      const keys = Object.keys(localStorage).filter((k) => k.startsWith("lf_backup_") && k !== "lf_backup_day").sort();
+      keys.slice(0, Math.max(0, keys.length - 7)).forEach((k) => localStorage.removeItem(k));
+    } catch (e) { /* storage full — skip silently */ }
+    if (sb) sb.from("baby_backups").insert({ day, data: payload }).then(() => {}, () => {});
+  }
 
   async function load() {
     if (!sb) return;
     setSyncing(true);
     try {
       const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
-      if (row?.data) setData(deepMerge(DEF, row.data));
-      setLastSynced(new Date());
+      if (row?.data) {
+        setData(deepMerge(DEF, row.data));
+        runBackup(row.data);
+      }
     } catch (e) {
       console.error("Load failed", e);
     }
@@ -1661,7 +2094,6 @@ function App() {
     if (!sb) return;
     try {
       await sb.from("baby_data").update({ data: next }).eq("id", 1);
-      setLastSynced(new Date());
     } catch (e) {
       console.error("Save failed", e);
     }
@@ -1678,30 +2110,61 @@ function App() {
     });
   }
 
-  const addTo = (key) => (item) => update((prev) => ({ ...prev, [key]: [...prev[key], item] }));
+  const addTo = (key) => (item) => {
+    const stamped = ATTRIBUTED_KEYS.has(key) && deviceParent && !item.by ? { ...item, by: deviceParent } : item;
+    update((prev) => ({ ...prev, [key]: [...prev[key], stamped] }));
+  };
   const updateIn = (key) => (item) => update((prev) => ({ ...prev, [key]: prev[key].map((x) => (x.id === item.id ? item : x)) }));
   const deleteFrom = (key) => (id) => update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) }));
-  const quickDiaper = (type) => addTo("diapers")({ id: uid(), date: new Date().toISOString().slice(0, 10), time: new Date().toTimeString().slice(0, 5), type });
+
+  const quickDiaper = (type) => {
+    const item = { id: uid(), date: todayStr(), time: nowTime(), type };
+    addTo("diapers")(item);
+    showToast(`${DIAPER_EMOJI[type]} ${type} diaper logged`, () => deleteFrom("diapers")(item.id));
+  };
 
   const startSleep = (type, minutesAgo = 0) => update((prev) => {
     const startedAt = new Date(Date.now() - minutesAgo * 60000);
     return { ...prev, activeSleep: { type, start: startedAt.toTimeString().slice(0, 5), startedAt: startedAt.toISOString() } };
   });
-  const stopSleep = () => update((prev) => {
-    const entry = { id: uid(), type: prev.activeSleep.type, date: new Date(prev.activeSleep.startedAt).toISOString().slice(0, 10), start: prev.activeSleep.start, end: new Date().toTimeString().slice(0, 5) };
-    return { ...prev, activeSleep: null, sleep: [...prev.sleep, entry] };
-  });
+  const stopSleep = () => {
+    const active = data.activeSleep;
+    if (!active) return;
+    const mins = Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000);
+    const entry = { id: uid(), type: active.type, date: localDateStr(new Date(active.startedAt)), start: active.start, end: nowTime(), by: deviceParent || undefined };
+    update((prev) => ({ ...prev, activeSleep: null, sleep: [...prev.sleep, entry] }));
+    showToast(`😴 Sleep logged · ${durLabel(mins)}`, () => deleteFrom("sleep")(entry.id));
+  };
 
-  const startFeeding = (side) => update((prev) => ({ ...prev, activeFeeding: { side, start: new Date().toTimeString().slice(0, 5), startedAt: new Date().toISOString() } }));
-  const stopFeeding = () => update((prev) => {
-    const durationMin = Math.max(1, Math.round((Date.now() - new Date(prev.activeFeeding.startedAt).getTime()) / 60000));
-    const entry = { id: uid(), date: new Date().toISOString().slice(0, 10), time: prev.activeFeeding.start, side: prev.activeFeeding.side, duration: durationMin };
-    return { ...prev, activeFeeding: null, nursing: [...prev.nursing, entry] };
-  });
+  const startFeeding = (side) => update((prev) => ({ ...prev, activeFeeding: { side, start: nowTime(), startedAt: new Date().toISOString() } }));
+  const stopFeeding = () => {
+    const active = data.activeFeeding;
+    if (!active) return;
+    const durationMin = Math.max(1, Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000));
+    const entry = { id: uid(), date: localDateStr(new Date(active.startedAt)), time: active.start, side: active.side, duration: durationMin, by: deviceParent || undefined };
+    update((prev) => ({ ...prev, activeFeeding: null, nursing: [...prev.nursing, entry] }));
+    showToast(`🍼 Feeding logged · ${durLabel(durationMin)} · ${active.side}`, () => deleteFrom("nursing")(entry.id));
+  };
 
-  // Quiet mode (per-device display preference, not synced)
-  const [quiet, setQuiet] = useState(() => localStorage.getItem("lf_quiet") === "1");
-  useEffect(() => { localStorage.setItem("lf_quiet", quiet ? "1" : "0"); }, [quiet]);
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `little-foot-backup-${todayStr()}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function importBackup(parsed) {
+    update(() => deepMerge(DEF, parsed));
+    showToast("Backup restored");
+  }
+
+  // Quiet mode: auto-dims 8pm–7am; tap the header icon to override (auto → on → off)
+  const [quietPref, setQuietPref] = useState(() => localStorage.getItem("lf_quiet_pref") || "auto");
+  useEffect(() => { localStorage.setItem("lf_quiet_pref", quietPref); }, [quietPref]);
+  const hourNow = new Date().getHours();
+  const quiet = quietPref === "on" || (quietPref === "auto" && (hourNow >= 20 || hourNow < 7));
+  const cycleQuiet = () => setQuietPref((q) => (q === "auto" ? "on" : q === "on" ? "off" : "auto"));
+  const quietIcon = quietPref === "auto" ? "🌗" : quietPref === "on" ? "🌙" : "☀️";
 
   // In-app reminder: fires a browser notification if the app is open and no feeding has
   // been logged for longer than the profile's configured window. This is a same-device,
@@ -1711,7 +2174,7 @@ function App() {
     if (!("Notification" in window)) return;
     if (Notification.permission === "default") Notification.requestPermission();
     const t = setInterval(() => {
-      const lastFeed = [...data.nursing].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`))[0];
+      const lastFeed = [...data.nursing].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
       if (!lastFeed) return;
       const last = new Date(`${lastFeed.date}T${lastFeed.time}`);
       const hoursSince = (Date.now() - last.getTime()) / 3600000;
@@ -1732,32 +2195,32 @@ function App() {
       <header className="app-header">
         <div className="brand"><Foot size={20} color="var(--marigold)" /><span>Little Foot</span></div>
         <div className="header-actions">
-          <button className="refresh-btn" onClick={() => setQuiet((q) => !q)} title="Quiet mode">{quiet ? "🌙" : "☀️"}</button>
+          <button className="refresh-btn" onClick={cycleQuiet} title={`Quiet mode: ${quietPref}`}>{quietIcon}</button>
           <button className="refresh-btn" onClick={load} disabled={syncing}>{syncing ? "…" : "↻"}</button>
         </div>
       </header>
+
+      <StatusStrip data={data} setView={setView} />
 
       {isMore && (
         <div className="back-row"><button className="back-btn" onClick={() => setView("more")}>← More</button></div>
       )}
 
       <main className="app-main">
-        {view === "today" && <TodayScreen data={data} setView={setView} onQuickDiaper={quickDiaper} />}
-        {view === "feed" && (
-          <FeedingScreen
-            nursing={data.nursing} solids={data.solids}
-            activeFeeding={data.activeFeeding} onStartFeeding={startFeeding} onStopFeeding={stopFeeding}
-            onAddNursing={addTo("nursing")} onUpdateNursing={updateIn("nursing")} onDeleteNursing={deleteFrom("nursing")}
-            onAddSolid={addTo("solids")} onUpdateSolid={updateIn("solids")} onDeleteSolid={deleteFrom("solids")}
+        {view === "today" && <TodayScreen data={data} token={googleAuth.token} setView={setView} />}
+        {view === "log" && (
+          <LogScreen
+            data={data}
+            onStartFeeding={startFeeding} onStopFeeding={stopFeeding}
+            onAddNursing={addTo("nursing")} onAddSolid={addTo("solids")}
+            onStartSleep={startSleep} onStopSleep={stopSleep} onAddSleep={addTo("sleep")}
+            onQuickDiaper={quickDiaper} onAddDiaper={addTo("diapers")}
           />
         )}
-        {view === "sleep" && (
-          <SleepScreen items={data.sleep} active={data.activeSleep} onAdd={addTo("sleep")} onUpdate={updateIn("sleep")} onDelete={deleteFrom("sleep")} onStart={startSleep} onStop={stopSleep} />
-        )}
+        {view === "history" && <HistoryScreen data={data} updateIn={updateIn} deleteFrom={deleteFrom} />}
         {view === "calendar" && (
-          <CalendarScreen schedule={data.schedule} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={deleteFrom("schedule")} />
+          <CalendarScreen schedule={data.schedule} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={deleteFrom("schedule")} />
         )}
-        {view === "diapers" && <DiaperScreen items={data.diapers} onAdd={addTo("diapers")} onUpdate={updateIn("diapers")} onDelete={deleteFrom("diapers")} />}
         {view === "more" && <MoreScreen setView={setView} />}
         {view === "growth" && (
           <GrowthScreen items={data.growth} profile={data.profile} onAdd={addTo("growth")} onDelete={deleteFrom("growth")} />
@@ -1765,7 +2228,7 @@ function App() {
         {view === "health" && (
           <ListSection title="Health" icon="🩺" items={data.health} fields={HEALTH_FIELDS}
             renderTitle={(i) => `${i.type || "Visit"}${i.doctor ? ` with ${i.doctor}` : ""}`}
-            extraAction={(i) => <IconBtn onClick={() => downloadICS({ title: `Doctor visit${i.doctor ? ` with ${i.doctor}` : ""}`, date: i.date, notes: i.notes })}>📅</IconBtn>}
+            extraAction={(i) => <IconBtn onClick={(e) => { e.stopPropagation(); downloadICS({ title: `Doctor visit${i.doctor ? ` with ${i.doctor}` : ""}`, date: i.date, notes: i.notes }); }}>📅</IconBtn>}
             onAdd={addTo("health")} onUpdate={updateIn("health")} onDelete={deleteFrom("health")} emptyText="No doctor visits logged yet." />
         )}
         {view === "milestones" && (
@@ -1790,13 +2253,24 @@ function App() {
           <ListSection title="Vaccines" icon="💉" items={data.vaccines} fields={VACCINE_FIELDS} sortKey="scheduled"
             renderTitle={(i) => i.name} renderSub={(i) => i.given ? `Given ${fmtDate(i.given)}` : i.scheduled ? `Scheduled ${fmtDate(i.scheduled)}` : ""}
             tone={(i) => (i.given ? "given" : "scheduled")}
-            extraAction={(i) => (!i.given && i.scheduled ? <IconBtn onClick={() => downloadICS({ title: `${i.name} vaccine`, date: i.scheduled, notes: i.notes })}>📅</IconBtn> : null)}
+            extraAction={(i) => (!i.given && i.scheduled ? <IconBtn onClick={(e) => { e.stopPropagation(); downloadICS({ title: `${i.name} vaccine`, date: i.scheduled, notes: i.notes }); }}>📅</IconBtn> : null)}
             onAdd={addTo("vaccines")} onUpdate={updateIn("vaccines")} onDelete={deleteFrom("vaccines")} emptyText="No vaccines logged yet." />
         )}
         {view === "prebirth" && <PreBirthScreen data={data} update={update} />}
         {view === "ask" && <AskScreen data={data} profile={data.profile} />}
-        {view === "profile" && <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })} />}
+        {view === "profile" && (
+          <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })}
+            deviceParent={deviceParent} setDeviceParent={setDeviceParent}
+            onExport={exportBackup} onImport={importBackup} />
+        )}
       </main>
+
+      {toast && (
+        <div className="toast">
+          <span>{toast.msg}</span>
+          {toast.undo && <button onClick={() => { toast.undo(); setToast(null); }}>Undo</button>}
+        </div>
+      )}
 
       <BottomNav view={view} setView={setView} />
     </div>
