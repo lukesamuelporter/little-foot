@@ -4,12 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
 <title>Little Foot</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='12' cy='15.5' rx='6' ry='7.5' fill='%23DE9138'/%3E%3Cellipse cx='5.2' cy='6.2' rx='2' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='9.6' cy='3.6' rx='1.9' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='14.4' cy='3.6' rx='1.9' ry='2.6' fill='%23DE9138'/%3E%3Cellipse cx='18.8' cy='6.2' rx='2' ry='2.6' fill='%23DE9138'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/png" sizes="192x192" href="chick-192.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="chick-64.png" />
+<link rel="apple-touch-icon" href="chick-180.png" />
+<link rel="manifest" href="manifest.json" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Little Foot" />
-<meta name="theme-color" content="#FBF6EC" />
+<meta name="theme-color" content="#5DAAD6" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -197,6 +200,32 @@
 
   .strip-legend{display:flex;gap:14px;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:6px;flex-wrap:wrap;}
   .strip-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+
+  .side-btns.three{grid-template-columns:1fr 1fr 1fr;}
+
+  .bar-row{margin-bottom:12px;}
+  .bar-row:last-child{margin-bottom:2px;}
+  .bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+  .bar-label{font-weight:700;font-size:14px;}
+  .bar-value{font-size:13px;color:var(--ink-soft);font-weight:600;}
+  .bar-track{height:8px;border-radius:6px;background:var(--cream);border:1px solid var(--line);overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;}
+
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .metric-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 13px;cursor:pointer;position:relative;overflow:hidden;}
+  .metric-label{font-size:12px;color:var(--ink-soft);font-weight:700;}
+  .metric-value{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin-top:2px;line-height:1.05;}
+  .metric-value .unit{font-size:15px;color:var(--ink-soft);font-weight:600;font-family:'Figtree',sans-serif;margin-left:2px;}
+  .metric-trend{font-size:12px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:5px;}
+  .metric-trend.up{color:var(--moss);}
+  .metric-trend.down{color:var(--rose);}
+  .metric-trend.flat{color:var(--ink-soft);}
+  .metric-spark{position:absolute;right:9px;bottom:9px;opacity:.85;}
+
+  .tip{padding:10px 0;border-top:1px solid var(--line);}
+  .tip-title{font-weight:700;font-size:14px;}
+  .tip-body{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.45;}
+  .learn-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
 </style>
 </head>
 <body>
@@ -214,6 +243,7 @@ const DEF = {
   profile: {
     name: "", dob: "", sex: "", bloodType: "", parent1: "", parent2: "", units: "imperial", reminderHours: 3,
     expectedSleepHours: 14, expectedDiapers: 6, expectedFeeds: 8,
+    carePlan: "Planning to breastfeed for 6 months.",
   },
   growth: [],
   health: [],
@@ -230,6 +260,8 @@ const DEF = {
   vaccines: [],
   prebirth: { contractions: [], checklist: [], registry: [] },
   schedule: [],
+  learnings: [],
+  advisor: { lastRun: null, ageAtRun: "", tips: [] },
 };
 
 const DIAPER_EMOJI = { Wet: "💧", Dirty: "💩", Both: "💧💩" };
@@ -316,11 +348,15 @@ function agoLabel(dt) {
   return `${h}h ${m % 60}m ago`;
 }
 function inLabel(dt) {
-  const m = Math.round((dt.getTime() - Date.now()) / 60000);
-  if (m <= 0) return "now";
-  if (m < 60) return `in ${m}m`;
-  const h = Math.floor(m / 60);
-  return `in ${h}h ${m % 60}m`;
+  const mTot = Math.round((dt.getTime() - Date.now()) / 60000);
+  if (mTot <= 0) return "now";
+  if (mTot < 60) return `in ${mTot}m`;
+  const hTot = Math.floor(mTot / 60);
+  if (hTot < 24) { const m = mTot % 60; return m ? `in ${hTot}h ${m}m` : `in ${hTot}h`; }
+  const dTot = Math.floor(hTot / 24);
+  if (dTot < 14) { const h = hTot % 24; return h ? `in ${dTot}d ${h}h` : `in ${dTot}d`; }
+  const w = Math.floor(dTot / 7), d = dTot % 7;
+  return d ? `in ${w}w ${d}d` : `in ${w}w`;
 }
 
 /* ---------- Shared status derivation (used by status strip + Today) ---------- */
@@ -351,6 +387,67 @@ function wakeWindowMin(m) {
   if (m < 11) return [165, 240];
   if (m < 14) return [180, 300];
   return [240, 360];
+}
+
+/* Ask once before destroying data */
+function withConfirm(fn) {
+  return (...args) => { if (window.confirm("Delete this? It can't be undone.")) fn(...args); };
+}
+const TYPE_EMOJI = { sleep: "\u{1F634}", feed: "\u{1F37C}", bath: "\u{1F6C1}", other: "\u{1F4CC}" };
+const typeEmoji = (t) => TYPE_EMOJI[t] || TYPE_EMOJI.other;
+
+/* Care averages over the last N days — shared by the doctor report and the Guide */
+function careStats(data, days) {
+  const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - (days - 1));
+  const inRange = (d) => d && new Date(d + "T00:00:00") >= cutoff;
+  const feeds = data.nursing.filter((n) => inRange(n.date));
+  const nursingFeeds = feeds.filter((f) => f.side !== "Bottle");
+  const bottleFeeds = feeds.filter((f) => f.side === "Bottle");
+  const durations = nursingFeeds.map((f) => parseInt(f.duration)).filter((d) => !isNaN(d));
+  const oz = bottleFeeds.map((f) => parseFloat(f.amount)).filter((x) => !isNaN(x));
+  const sleeps = data.sleep.filter((s) => inRange(s.date));
+  const sleepMins = sleeps.map((s) => minutesBetween(s.start, s.end)).filter((m) => m != null);
+  const dias = data.diapers.filter((d) => inRange(d.date));
+  const wet = dias.filter((d) => d.type === "Wet" || d.type === "Both").length;
+  const dirty = dias.filter((d) => d.type === "Dirty" || d.type === "Both").length;
+  return {
+    days,
+    feedsPerDay: feeds.length / days,
+    nursingPerDay: nursingFeeds.length / days,
+    bottlesPerDay: bottleFeeds.length / days,
+    avgFeedMin: durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : null,
+    avgBottleOz: oz.length ? oz.reduce((a, b) => a + b, 0) / oz.length : null,
+    sleepMinPerDay: sleepMins.reduce((a, b) => a + b, 0) / days,
+    longestSleepMin: sleepMins.length ? Math.max(...sleepMins) : null,
+    wetPerDay: wet / days,
+    dirtyPerDay: dirty / days,
+  };
+}
+
+/* Same as careStats but over an explicit [from, to] date range (inclusive) */
+function careStatsBetween(data, from, to) {
+  const a = from <= to ? from : to, b = from <= to ? to : from;
+  const days = Math.max(1, Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000) + 1);
+  const inRange = (d) => d && d >= a && d <= b;
+  const feeds = data.nursing.filter((n) => inRange(n.date));
+  const nursingFeeds = feeds.filter((f) => f.side !== "Bottle");
+  const bottleFeeds = feeds.filter((f) => f.side === "Bottle");
+  const durations = nursingFeeds.map((f) => parseInt(f.duration)).filter((d) => !isNaN(d));
+  const oz = bottleFeeds.map((f) => parseFloat(f.amount)).filter((x) => !isNaN(x));
+  const sleeps = data.sleep.filter((s) => inRange(s.date));
+  const sleepMins = sleeps.map((s) => minutesBetween(s.start, s.end)).filter((m) => m != null);
+  const dias = data.diapers.filter((d) => inRange(d.date));
+  const wet = dias.filter((d) => d.type === "Wet" || d.type === "Both").length;
+  const dirty = dias.filter((d) => d.type === "Dirty" || d.type === "Both").length;
+  return {
+    days,
+    feedsPerDay: feeds.length / days, nursingPerDay: nursingFeeds.length / days, bottlesPerDay: bottleFeeds.length / days,
+    avgFeedMin: durations.length ? durations.reduce((x, y) => x + y, 0) / durations.length : null,
+    avgBottleOz: oz.length ? oz.reduce((x, y) => x + y, 0) / oz.length : null,
+    sleepMinPerDay: sleepMins.reduce((x, y) => x + y, 0) / days,
+    longestSleepMin: sleepMins.length ? Math.max(...sleepMins) : null,
+    wetPerDay: wet / days, dirtyPerDay: dirty / days,
+  };
 }
 
 /* ---------- WHO growth percentile estimate (approximate — reference only) ---------- */
@@ -733,7 +830,8 @@ const NURSING_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
   { key: "time", label: "Time", type: "time", required: true },
   { key: "duration", label: "Duration (min)", type: "number" },
-  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both"] },
+  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both", "Bottle"] },
+  { key: "amount", label: "Amount (oz — bottle feeds)", type: "number" },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
 const SOLIDS_FIELDS = [
@@ -751,7 +849,7 @@ const SLEEP_FIELDS = [
 ];
 const MILESTONE_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
-  { key: "category", label: "Category", type: "select", options: ["Motor", "Social", "Cognitive", "Communication"] },
+  { key: "category", label: "Category", type: "select", options: ["Motor", "Social", "Cognitive", "Communication", "Other"] },
   { key: "title", label: "Milestone", type: "text", required: true },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
@@ -908,11 +1006,11 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
     return () => clearInterval(t);
   }, [data.activeFeeding, data.activeSleep]);
 
-  const lastNursing = useMemo(
-    () => [...data.nursing].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0],
+  const lastSideFeed = useMemo(
+    () => [...data.nursing].filter((n) => n.side === "Left" || n.side === "Right").sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0],
     [data.nursing]
   );
-  const nextSide = lastNursing?.side === "Left" ? "Right" : lastNursing?.side === "Right" ? "Left" : null;
+  const nextSide = lastSideFeed?.side === "Left" ? "Right" : lastSideFeed?.side === "Right" ? "Left" : null;
   const active = data.activeFeeding;
   const asleep = data.activeSleep;
 
@@ -936,10 +1034,11 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
           </div>
         ) : (
           <>
-            {nextSide && <div className="item-sub" style={{ marginBottom: 8 }}>Last side was {lastNursing.side} — try <strong>{nextSide}</strong> next.</div>}
-            <div className="side-btns">
+            {nextSide && <div className="item-sub" style={{ marginBottom: 8 }}>Last side was {lastSideFeed.side} — try <strong>{nextSide}</strong> next.</div>}
+            <div className="side-btns three">
               <button className="side-btn" style={nextSide === "Left" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Left")}>▶ Left</button>
               <button className="side-btn" style={nextSide === "Right" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Right")}>▶ Right</button>
+              <button className="side-btn" onClick={() => onStartFeeding("Bottle")}>🍼 Bottle</button>
             </div>
             <button className="link-btn" style={{ marginTop: 9 }} onClick={() => setSheet("solid")}>+ Solid food</button>
           </>
@@ -1041,7 +1140,9 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
 
   const entryTitle = (e) => {
     const i = e.item;
-    if (e.kind === "feed") return `🍼 ${i.side || "Feeding"}${i.duration ? ` · ${i.duration}m` : ""}`;
+    if (e.kind === "feed") return i.side === "Bottle"
+      ? `🍼 Bottle${i.amount ? ` · ${i.amount} oz` : ""}${i.duration ? ` · ${i.duration}m` : ""}`
+      : `🍼 ${i.side || "Feeding"}${i.duration ? ` · ${i.duration}m` : ""}`;
     if (e.kind === "solid") return `🥣 ${i.food || "Solid food"}${i.reaction && i.reaction !== "None" ? ` — ${i.reaction}` : ""}`;
     if (e.kind === "sleep") return `${i.type === "Night" ? "🌙" : "😴"} ${i.type || "Sleep"} · ${fmtTime(i.start)}${i.end ? ` – ${fmtTime(i.end)}` : ""}`;
     return `${DIAPER_EMOJI[i.type] || "🚼"} ${i.type || "Diaper"}`;
@@ -1172,7 +1273,7 @@ function GrowthChart({ items, metric, color, profile }) {
     </svg>
   );
 }
-function GrowthScreen({ items, profile, onAdd, onDelete }) {
+function GrowthScreen({ items, data, profile, onAdd, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const sorted = useMemo(() => [...items].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))), [items]);
   const wUnit = profile.units === "metric" ? "kg" : "lb";
@@ -1189,6 +1290,23 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
   const wTrend = trendPerWeek(items, "weight");
   const hTrend = trendPerWeek(items, "height");
   const trendLabel = (t, unit) => t == null ? "" : `${t >= 0 ? "↑" : "↓"} ${Math.abs(t).toFixed(t >= 1 ? 1 : 2)} ${unit}/wk`;
+
+  /* Doctor report — configurable date range (picked each time) */
+  const lastVisit = [...(data.health || [])].filter((h) => h.date).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  const defaultFrom = lastVisit ? lastVisit.date : localDateStr(new Date(Date.now() - 30 * 86400000));
+  const [rangeFrom, setRangeFrom] = useState(defaultFrom);
+  const [rangeTo, setRangeTo] = useState(todayStr());
+  const rangeDays = Math.max(1, Math.round((dtFrom(rangeTo, "23:59") - dtFrom(rangeFrom, "00:00")) / 86400000) + 1);
+  const statsRange = careStatsBetween(data, rangeFrom, rangeTo);
+  const stats7 = careStats(data, 7);
+  const stats30 = careStats(data, 30);
+  const reactions = data.solids.filter((s) => s.reaction && s.reaction !== "None");
+  const foodsTried = new Set(data.solids.map((s) => (s.food || "").toLowerCase().trim()).filter(Boolean)).size;
+  const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() - 30);
+  const recentSymptoms = [...data.symptoms].filter((s) => s.date && new Date(s.date + "T00:00:00") >= cutoff30).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const vaccinesGiven = [...data.vaccines].filter((v) => v.given).sort((a, b) => String(b.given).localeCompare(String(a.given)));
+  const vaccinesUpcoming = data.vaccines.filter((v) => !v.given && v.scheduled);
+  const perDay = (x) => (Math.round(x * 10) / 10).toFixed(1);
 
   return (
     <div className="screen">
@@ -1229,9 +1347,23 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
           )}
           {profile.sex && profile.dob && <p className="rule-note">The shaded band is the approximate WHO 10th–90th percentile range for {profile.name || "baby"}'s age — staying anywhere inside it, on a steady curve, is what pediatricians look for. Your pediatrician's chart is the accurate one.</p>}
           {!profile.sex && (hasWeight || hasHeight) && <p className="rule-note">Add baby's sex and birthdate in Profile to see the WHO percentile band behind the curve.</p>}
-          <Btn variant="ghost" full onClick={() => window.print()}>🖨️ Print / save PDF for doctor</Btn>
         </Card>
       )}
+
+      <Card>
+        <div className="item-title">🖨️ Doctor visit report</div>
+        <p className="rule-note" style={{ margin: "6px 0 10px" }}>A one-page summary of growth, feeding, sleep, diapers, food reactions, symptoms, and vaccines — print it or save as a PDF before checkups.</p>
+        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+          <label className="field" style={{ flex: 1 }}><span>From</span><input type="date" value={rangeFrom} max={rangeTo} onChange={(e) => setRangeFrom(e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span>To</span><input type="date" value={rangeTo} min={rangeFrom} max={todayStr()} onChange={(e) => setRangeTo(e.target.value)} /></label>
+        </div>
+        <div className="chip-row" style={{ marginBottom: 10 }}>
+          {lastVisit && <button className="chip" onClick={() => { setRangeFrom(lastVisit.date); setRangeTo(todayStr()); }}>Since last visit</button>}
+          <button className="chip" onClick={() => { setRangeFrom(localDateStr(new Date(Date.now() - 30 * 86400000))); setRangeTo(todayStr()); }}>Last 30 days</button>
+          <button className="chip" onClick={() => { setRangeFrom(localDateStr(new Date(Date.now() - 90 * 86400000))); setRangeTo(todayStr()); }}>Last 90 days</button>
+        </div>
+        <Btn variant="ghost" full onClick={() => window.print()}>Print / save PDF ({rangeDays} day{rangeDays === 1 ? "" : "s"})</Btn>
+      </Card>
 
       {sorted.length === 0 && <EmptyState text="No growth measurements yet." />}
       <div className="list">
@@ -1259,18 +1391,76 @@ function GrowthScreen({ items, profile, onAdd, onDelete }) {
       )}
 
       <div className="print-summary">
-        <h1>{profile.name || "Baby"}'s growth summary</h1>
-        <p>DOB: {fmtDate(profile.dob) || "—"} &nbsp;·&nbsp; Printed {fmtDate(todayStr())}</p>
-        {hasWeight && (<><h3>Weight ({wUnit})</h3><GrowthChart items={items} metric="weight" color="#B96F1F" profile={profile} /></>)}
-        {hasHeight && (<><h3>Height ({hUnit})</h3><GrowthChart items={items} metric="height" color="#5F7A5A" profile={profile} /></>)}
+        <h1>{profile.name || "Baby"} — pediatric visit summary</h1>
+        <p>DOB {fmtDate(profile.dob) || "—"} · {ageString(profile.dob)} · Printed {fmtDate(todayStr())}{profile.carePlan ? ` · ${profile.carePlan}` : ""}</p>
+        <p>Reporting period: {fmtDate(rangeFrom)} – {fmtDate(rangeTo)} ({rangeDays} days){lastVisit && rangeFrom === lastVisit.date ? " · since last recorded visit" : ""}</p>
+
+        <p style={{ fontSize: 12, lineHeight: 1.5 }}>
+          Over this period, {profile.name || "baby"} averaged <strong>{perDay(statsRange.feedsPerDay)} feeds/day</strong>
+          {statsRange.avgFeedMin ? ` (~${Math.round(statsRange.avgFeedMin)} min/nursing)` : ""}
+          {statsRange.avgBottleOz ? ` and ~${statsRange.avgBottleOz.toFixed(1)} oz/bottle` : ""},
+          <strong> {durLabel(Math.round(statsRange.sleepMinPerDay)) || "0m"} sleep/day</strong>
+          {statsRange.longestSleepMin ? ` (longest stretch ${durLabel(statsRange.longestSleepMin)})` : ""},
+          and <strong>{perDay(statsRange.wetPerDay)} wet / {perDay(statsRange.dirtyPerDay)} dirty diapers/day</strong>.
+        </p>
+
+        <h3>Daily care summary (averages per day)</h3>
         <table className="print-table">
-          <thead><tr><th>Date</th><th>Weight ({wUnit})</th><th>Height ({hUnit})</th><th>Head circ. ({hUnit})</th><th>Notes</th></tr></thead>
+          <thead><tr><th></th><th>Selected range ({rangeDays}d)</th><th>Last 30 days</th></tr></thead>
           <tbody>
-            {sorted.map((item) => (
-              <tr key={item.id}><td>{fmtDate(item.date)}</td><td>{item.weight || ""}</td><td>{item.height || ""}</td><td>{item.headCirc || ""}</td><td>{item.notes || ""}</td></tr>
-            ))}
+            <tr><td>Feeds per day</td><td>{perDay(statsRange.feedsPerDay)} ({perDay(statsRange.nursingPerDay)} nursing · {perDay(statsRange.bottlesPerDay)} bottle)</td><td>{perDay(stats30.feedsPerDay)} ({perDay(stats30.nursingPerDay)} nursing · {perDay(stats30.bottlesPerDay)} bottle)</td></tr>
+            <tr><td>Avg nursing length</td><td>{statsRange.avgFeedMin ? `${Math.round(statsRange.avgFeedMin)} min` : "—"}</td><td>{stats30.avgFeedMin ? `${Math.round(stats30.avgFeedMin)} min` : "—"}</td></tr>
+            <tr><td>Avg bottle amount</td><td>{statsRange.avgBottleOz ? `${statsRange.avgBottleOz.toFixed(1)} oz` : "—"}</td><td>{stats30.avgBottleOz ? `${stats30.avgBottleOz.toFixed(1)} oz` : "—"}</td></tr>
+            <tr><td>Sleep per day</td><td>{durLabel(Math.round(statsRange.sleepMinPerDay)) || "0m"}</td><td>{durLabel(Math.round(stats30.sleepMinPerDay)) || "0m"}</td></tr>
+            <tr><td>Longest sleep stretch</td><td>{statsRange.longestSleepMin ? durLabel(statsRange.longestSleepMin) : "—"}</td><td>{stats30.longestSleepMin ? durLabel(stats30.longestSleepMin) : "—"}</td></tr>
+            <tr><td>Wet diapers per day</td><td>{perDay(statsRange.wetPerDay)}</td><td>{perDay(stats30.wetPerDay)}</td></tr>
+            <tr><td>Dirty diapers per day</td><td>{perDay(statsRange.dirtyPerDay)}</td><td>{perDay(stats30.dirtyPerDay)}</td></tr>
           </tbody>
         </table>
+
+        <h3>Growth</h3>
+        {(latestW || latestH) && (
+          <p>
+            {latestW ? `Latest weight: ${latestW.weight} ${wUnit} (${fmtDate(latestW.date)})${wPct ? ` · ≈${wPct}th percentile` : ""}` : ""}
+            {latestW && latestH ? " — " : ""}
+            {latestH ? `Latest height: ${latestH.height} ${hUnit} (${fmtDate(latestH.date)})${hPct ? ` · ≈${hPct}th percentile` : ""}` : ""}
+          </p>
+        )}
+        {hasWeight && (<><h3>Weight ({wUnit})</h3><GrowthChart items={items} metric="weight" color="#B96F1F" profile={profile} /></>)}
+        {hasHeight && (<><h3>Height ({hUnit})</h3><GrowthChart items={items} metric="height" color="#5F7A5A" profile={profile} /></>)}
+        {sorted.length > 0 && (
+          <table className="print-table">
+            <thead><tr><th>Date</th><th>Weight ({wUnit})</th><th>Height ({hUnit})</th><th>Head circ. ({hUnit})</th><th>Notes</th></tr></thead>
+            <tbody>
+              {sorted.map((item) => (
+                <tr key={item.id}><td>{fmtDate(item.date)}</td><td>{item.weight || ""}</td><td>{item.height || ""}</td><td>{item.headCirc || ""}</td><td>{item.notes || ""}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <h3>Foods &amp; reactions</h3>
+        <p>{foodsTried} food{foodsTried === 1 ? "" : "s"} introduced so far.</p>
+        {reactions.length > 0 ? (
+          <table className="print-table">
+            <thead><tr><th>Food</th><th>Date</th><th>Reaction</th><th>Notes</th></tr></thead>
+            <tbody>{reactions.map((s) => (<tr key={s.id}><td>{s.food}</td><td>{fmtDate(s.date)}</td><td>{s.reaction}</td><td>{s.notes || ""}</td></tr>))}</tbody>
+          </table>
+        ) : <p>No adverse food reactions recorded.</p>}
+
+        <h3>Symptoms (last 30 days)</h3>
+        {recentSymptoms.length > 0 ? (
+          <table className="print-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Severity</th><th>Temp</th><th>Notes</th></tr></thead>
+            <tbody>{recentSymptoms.map((s) => (<tr key={s.id}><td>{fmtDate(s.date)}</td><td>{s.type || ""}</td><td>{s.severity || ""}</td><td>{s.temp ? `${s.temp}°F` : ""}</td><td>{s.notes || ""}</td></tr>))}</tbody>
+          </table>
+        ) : <p>None recorded.</p>}
+
+        <h3>Vaccines</h3>
+        {vaccinesGiven.length > 0 ? <p>Given: {vaccinesGiven.map((v) => `${v.name} (${fmtDate(v.given)})`).join("; ")}</p> : <p>None recorded as given.</p>}
+        {vaccinesUpcoming.length > 0 && <p>Scheduled: {vaccinesUpcoming.map((v) => `${v.name} (${fmtDate(v.scheduled)})`).join("; ")}</p>}
+
+        <p style={{ fontStyle: "italic" }}>Prepared with Little Foot. Growth percentiles are WHO-based estimates, for reference only.</p>
       </div>
     </div>
   );
@@ -1325,6 +1515,7 @@ function ProfileScreen({ profile, onSave, deviceParent, setDeviceParent, onExpor
             <option value={p2}>{p2}</option>
           </select>
         </label>
+        <label className="field"><span>Care plan &amp; notes (the Guide reads this)</span><textarea rows={2} value={vals.carePlan || ""} onChange={(e) => set("carePlan", e.target.value)} /></label>
         <label className="field">
           <span>Units</span>
           <select value={vals.units || "imperial"} onChange={(e) => set("units", e.target.value)}>
@@ -1336,7 +1527,7 @@ function ProfileScreen({ profile, onSave, deviceParent, setDeviceParent, onExpor
           <span>Feeding interval (hours) — drives reminders &amp; "next feed" on Today</span>
           <input type="number" value={vals.reminderHours ?? 3} onChange={(e) => set("reminderHours", e.target.value)} />
         </label>
-        <div className="field-group-label">Daily targets (for the Today rings)</div>
+        <div className="field-group-label">Daily targets (for Today's progress bars)</div>
         <label className="field"><span>Expected sleep (hours/day)</span><input type="number" value={vals.expectedSleepHours ?? 14} onChange={(e) => set("expectedSleepHours", e.target.value)} /></label>
         <label className="field"><span>Expected diapers/day</span><input type="number" value={vals.expectedDiapers ?? 6} onChange={(e) => set("expectedDiapers", e.target.value)} /></label>
         <label className="field"><span>Expected feeds/day</span><input type="number" value={vals.expectedFeeds ?? 8} onChange={(e) => set("expectedFeeds", e.target.value)} /></label>
@@ -1371,7 +1562,7 @@ const MORE_GROUPS = [
   ]},
   { label: "Planning", items: [
     { key: "calendar", icon: "🗓️", label: "Calendar & routines" },
-    { key: "ask", icon: "🤖", label: "Ask" },
+    { key: "ask", icon: "🧭", label: "Guide" },
   ]},
   { label: "Setup", items: [
     { key: "profile", icon: "👤", label: "Profile" },
@@ -1611,7 +1802,7 @@ function PreBirthScreen({ data, update }) {
         <ContractionScreen
           items={pb.contractions}
           onAdd={(c) => patch((p) => ({ ...p, contractions: [...p.contractions, c] }))}
-          onDelete={(id) => patch((p) => ({ ...p, contractions: p.contractions.filter((x) => x.id !== id) }))}
+          onDelete={withConfirm((id) => patch((p) => ({ ...p, contractions: p.contractions.filter((x) => x.id !== id) })))}
         />
       )}
       {sub === "bag" && (
@@ -1619,7 +1810,7 @@ function PreBirthScreen({ data, update }) {
           items={pb.checklist}
           onAdd={(item) => patch((p) => ({ ...p, checklist: [...p.checklist, item] }))}
           onToggle={(id) => patch((p) => ({ ...p, checklist: p.checklist.map((x) => (x.id === id ? { ...x, checked: !x.checked } : x)) }))}
-          onDelete={(id) => patch((p) => ({ ...p, checklist: p.checklist.filter((x) => x.id !== id) }))}
+          onDelete={withConfirm((id) => patch((p) => ({ ...p, checklist: p.checklist.filter((x) => x.id !== id) })))}
         />
       )}
       {sub === "registry" && (
@@ -1628,26 +1819,84 @@ function PreBirthScreen({ data, update }) {
           items={pb.registry}
           onAdd={(item) => patch((p) => ({ ...p, registry: [...p.registry, item] }))}
           onToggle={(id) => patch((p) => ({ ...p, registry: p.registry.map((x) => (x.id === id ? { ...x, checked: !x.checked } : x)) }))}
-          onDelete={(id) => patch((p) => ({ ...p, registry: p.registry.filter((x) => x.id !== id) }))}
+          onDelete={withConfirm((id) => patch((p) => ({ ...p, registry: p.registry.filter((x) => x.id !== id) })))}
         />
       )}
     </div>
   );
 }
 
-/* ---------- Ask (bring-your-own-key AI chat) ---------- */
-function AskScreen({ data, profile }) {
+/* ---------- Guide: weekly age-tailored tips, what worked / didn't, and chat ---------- */
+function buildGuideContext(data) {
+  const { profile } = data;
+  const s7 = careStats(data, 7);
+  const latestW = [...data.growth].filter((i) => i.weight).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  const wKg = latestW ? parseFloat(latestW.weight) * (profile.units === "metric" ? 1 : KG_PER_LB) : null;
+  const wPct = latestW ? whoPercentile(wKg, monthsBetween(profile.dob, latestW.date), profile.sex, "weight") : null;
+  const foods = {};
+  data.solids.forEach((s) => { if (s.food) foods[s.food.toLowerCase().trim()] = s.reaction && s.reaction !== "None" ? s.reaction : "ok"; });
+  const foodList = Object.entries(foods).map(([f, r]) => (r === "ok" ? f : `${f} (${r} reaction)`)).join(", ") || "none yet";
+  const milestones = [...data.milestones].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 6).map((m) => `${m.title} (${m.date})`).join("; ") || "none logged";
+  const learnings = [...data.learnings].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 12).map((l) => `${l.verdict}: ${l.text}`).join("; ") || "none yet";
+  return `Baby: ${profile.name || "unnamed"}, ${ageString(profile.dob) || "age unknown"} (DOB ${profile.dob || "unknown"}).
+Parents' care plan/notes: ${profile.carePlan || "none"}.
+Last 7 days, per day: ${s7.feedsPerDay.toFixed(1)} feeds (${s7.nursingPerDay.toFixed(1)} nursing, ${s7.bottlesPerDay.toFixed(1)} bottle), avg nursing ${s7.avgFeedMin ? Math.round(s7.avgFeedMin) + " min" : "n/a"}; sleep ${durLabel(Math.round(s7.sleepMinPerDay)) || "0m"}/day (longest stretch ${s7.longestSleepMin ? durLabel(s7.longestSleepMin) : "n/a"}); ${s7.wetPerDay.toFixed(1)} wet + ${s7.dirtyPerDay.toFixed(1)} dirty diapers/day.
+Latest weight: ${latestW ? `${latestW.weight} ${profile.units === "metric" ? "kg" : "lb"} on ${latestW.date}${wPct ? ` (~${wPct}th percentile)` : ""}` : "not logged"}.
+Foods tried: ${foodList}.
+Recent milestones: ${milestones}.
+What the parents found worked / didn't work: ${learnings}.
+Currently sleeping: ${data.activeSleep ? "yes" : "no"}.`;
+}
+async function generateGuideTips(apiKey, data) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1200,
+      system: `You are a warm, evidence-informed infant-care guide for tired parents. You are not a doctor: keep every suggestion safe, mainstream (AAP/WHO-aligned), and age-appropriate, and defer to the pediatrician for anything medical. Tailor tightly to the baby's exact age and the data provided: respect the parents' care plan, build on what they said worked, avoid what didn't, and only suggest solids/new foods when age-appropriate (noting foods not yet tried). Cover a mix across development & play, feeding (what to expect next), sleep, and one outing or activity idea. Respond with ONLY a JSON array (no markdown fences) of 4 to 6 objects: [{"title": "short imperative title", "body": "2-3 practical sentences"}].`,
+      messages: [{ role: "user", content: `Here is our baby's data. Please write this week's guide.\n\n${buildGuideContext(data)}` }],
+    }),
+  });
+  const json = await res.json();
+  const text = (json.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  const clean = text.replace(/```json|```/g, "").trim();
+  const arr = JSON.parse(clean.slice(clean.indexOf("["), clean.lastIndexOf("]") + 1));
+  if (!Array.isArray(arr)) throw new Error("Unexpected guide format");
+  return arr.filter((t) => t && t.title && t.body).slice(0, 6);
+}
+function GuideScreen({ data, update, onAddLearning, onDeleteLearning }) {
+  const profile = data.profile;
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("lf_api_key") || "");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tipsLoading, setTipsLoading] = useState(false);
+  const [learnText, setLearnText] = useState("");
 
   function saveKey(k) { setApiKey(k); localStorage.setItem("lf_api_key", k); }
 
-  function buildContext() {
-    const lastFeed = [...data.nursing].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
-    const lastDiaper = [...data.diapers].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
-    return `Baby: ${profile.name || "unnamed"}, age: ${ageString(profile.dob)}. Last feeding: ${lastFeed ? `${lastFeed.date} ${lastFeed.time}, side ${lastFeed.side}` : "none logged"}. Last diaper: ${lastDiaper ? `${lastDiaper.date} ${lastDiaper.time}, ${lastDiaper.type}` : "none logged"}. Currently sleeping: ${data.activeSleep ? "yes" : "no"}.`;
+  async function refreshTips() {
+    if (!apiKey) { alert("Add your Anthropic API key above first."); return; }
+    setTipsLoading(true);
+    try {
+      const tips = await generateGuideTips(apiKey, data);
+      update({ advisor: { lastRun: new Date().toISOString(), ageAtRun: ageString(profile.dob), tips } });
+    } catch (e) {
+      alert("Couldn't generate the guide — check your API key and connection.");
+    }
+    setTipsLoading(false);
+  }
+
+  function addLearning(verdict) {
+    if (!learnText.trim()) return;
+    onAddLearning({ id: uid(), date: todayStr(), text: learnText.trim(), verdict });
+    setLearnText("");
   }
 
   async function send(text) {
@@ -1665,8 +1914,8 @@ function AskScreen({ data, profile }) {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 500,
-          system: `You are a calm, practical assistant helping tired parents with a newborn. Context: ${buildContext()}`,
+          max_tokens: 600,
+          system: `You are a calm, practical, evidence-informed assistant helping tired parents with a newborn. You are not a doctor — recommend the pediatrician for anything medical. Baby data:\n${buildGuideContext(data)}`,
           messages: next,
         }),
       });
@@ -1679,26 +1928,73 @@ function AskScreen({ data, profile }) {
     setLoading(false);
   }
 
+  const tips = (data.advisor && data.advisor.tips) || [];
+  const learnings = [...data.learnings].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
   return (
     <div className="screen">
-      <div className="screen-head"><h2>🤖 Ask</h2></div>
+      <div className="screen-head"><h2>🧭 Guide</h2></div>
       {!apiKey && (
         <Card>
-          <p className="rule-note">Bring your own Anthropic API key (from console.anthropic.com) to use this. It's stored only in this browser — never synced through Supabase — but anyone using this device could view it, so consider a key with a small spend limit.</p>
+          <p className="rule-note">Bring your own Anthropic API key (from console.anthropic.com) to power the Guide. It's stored only in this browser — never synced through Supabase — but anyone using this device could view it, so consider a key with a small spend limit.</p>
           <label className="field"><span>Anthropic API key</span><input type="password" defaultValue={apiKey} onBlur={(e) => saveKey(e.target.value)} placeholder="sk-ant-..." /></label>
         </Card>
       )}
-      <div className="chat-log">
-        {messages.map((m, i) => <div key={i} className={m.role === "user" ? "chat-bubble user" : "chat-bubble assistant"}>{m.content}</div>)}
-        {loading && <div className="chat-bubble assistant">…</div>}
-      </div>
-      <div className="quick-actions" style={{ marginBottom: 10 }}>
-        <Btn variant="ghost" onClick={() => send("The baby is crying right now — any ideas why, given the recent stats?")}>⚡ Crying now</Btn>
-      </div>
-      <div className="row">
-        <input className="grow" placeholder="Ask something…" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && input.trim() && send(input.trim())} />
-        <Btn onClick={() => input.trim() && send(input.trim())} disabled={loading}>Send</Btn>
-      </div>
+
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">💡 This week's guide</div>
+          <button className="link-btn" onClick={refreshTips} disabled={tipsLoading}>{tipsLoading ? "Thinking…" : "↻ Refresh"}</button>
+        </div>
+        {tips.length === 0 && (
+          <div className="item-sub">{tipsLoading ? "Reading this week's data and writing your guide…" : "Tap Refresh to get age-tailored tips built from this week's feeding, sleep, food, and milestone data. It also refreshes itself weekly when you open the app."}</div>
+        )}
+        {tips.map((t, i) => (
+          <div key={i} className="tip">
+            <div className="tip-title">{t.title}</div>
+            <div className="tip-body">{t.body}</div>
+          </div>
+        ))}
+        {data.advisor && data.advisor.lastRun && (
+          <p className="rule-note">Updated {fmtDate(data.advisor.lastRun.slice(0, 10))}{data.advisor.ageAtRun ? ` · ${data.advisor.ageAtRun}` : ""}. General guidance, not medical advice — check with your pediatrician.</p>
+        )}
+      </Card>
+
+      <Card>
+        <div className="log-card-head"><div className="item-title">📌 What worked / what didn't</div></div>
+        <p className="rule-note" style={{ margin: "0 0 9px" }}>Jot down wins and misses — the guide and chat read these, so you never repeat a failed experiment.</p>
+        <input className="grow" style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 11px", background: "var(--cream)", fontSize: 15, marginBottom: 8 }} placeholder="e.g. white noise + football hold at bedtime" value={learnText} onChange={(e) => setLearnText(e.target.value)} />
+        <div className="quick-actions">
+          <Btn variant="ghost" onClick={() => addLearning("Worked")}>👍 Worked</Btn>
+          <Btn variant="ghost" onClick={() => addLearning("Didn't work")}>👎 Didn't work</Btn>
+        </div>
+        {learnings.slice(0, 10).map((l) => (
+          <div className="learn-row" key={l.id} style={{ marginTop: 8 }}>
+            <span>{l.verdict === "Worked" ? "👍" : "👎"}</span>
+            <div className="grow">
+              <div style={{ fontSize: 14 }}>{l.text}</div>
+              <div className="item-sub" style={{ fontSize: 11 }}>{fmtDate(l.date)}</div>
+            </div>
+            <IconBtn variant="danger" onClick={() => onDeleteLearning(l.id)}>✕</IconBtn>
+          </div>
+        ))}
+      </Card>
+
+      <Card>
+        <div className="log-card-head"><div className="item-title">💬 Ask anything</div></div>
+        <div className="chat-log">
+          {messages.map((m, i) => <div key={i} className={m.role === "user" ? "chat-bubble user" : "chat-bubble assistant"}>{m.content}</div>)}
+          {loading && <div className="chat-bubble assistant">…</div>}
+        </div>
+        <div className="quick-actions" style={{ marginBottom: 10 }}>
+          <Btn variant="ghost" onClick={() => send("The baby is crying right now — any ideas why, given the recent stats?")}>⚡ Crying now</Btn>
+          <Btn variant="ghost" onClick={() => send("Based on her age and what she's tried, what foods or feeding changes should we consider next?")}>🥣 Feeding next</Btn>
+        </div>
+        <div className="row">
+          <input className="grow" style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "10px 11px", background: "var(--cream)", fontSize: 15 }} placeholder="Ask something…" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && input.trim() && send(input.trim())} />
+          <Btn onClick={() => input.trim() && send(input.trim())} disabled={loading}>Send</Btn>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -1708,6 +2004,7 @@ const ROUTINE_PRESETS = [
   { label: "🌙 Bedtime", item: { type: "sleep", label: "Bedtime", time: "19:00", durationMin: 660, days: [] } },
   { label: "😴 Naptime", item: { type: "sleep", label: "Naptime", time: "13:00", durationMin: 60, days: [] } },
   { label: "🍽️ Mealtime", item: { type: "feed", label: "Mealtime", time: "12:00", durationMin: 30, days: [] } },
+  { label: "🛁 Bathtime", item: { type: "bath", label: "Bathtime", time: "18:30", durationMin: 20, days: [] } },
 ];
 function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
   const [vals, setVals] = useState(initial || { type: "sleep", label: "", time: "09:00", durationMin: 30, days: [], notes: "" });
@@ -1722,12 +2019,23 @@ function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
           <select value={vals.type} onChange={(e) => set("type", e.target.value)}>
             <option value="sleep">Sleep / Nap</option>
             <option value="feed">Feeding / Meal</option>
+            <option value="bath">Bath</option>
             <option value="other">Other</option>
           </select>
         </label>
         <label className="field"><span>Label</span><input value={vals.label} onChange={(e) => set("label", e.target.value)} placeholder="e.g. Morning nap" /></label>
         <label className="field"><span>Time</span><input type="time" value={vals.time} onChange={(e) => set("time", e.target.value)} /></label>
-        <label className="field"><span>Expected duration (min)</span><input type="number" value={vals.durationMin} onChange={(e) => set("durationMin", e.target.value)} /></label>
+        <label className="field">
+          <span>Expected duration</span>
+          <div className="row">
+            <input type="number" min="0" style={{ width: "50%" }} value={Math.floor((parseInt(vals.durationMin) || 0) / 60)}
+              onChange={(e) => { const h = parseInt(e.target.value) || 0; set("durationMin", h * 60 + ((parseInt(vals.durationMin) || 0) % 60)); }} />
+            <span style={{ fontWeight: 400 }}>h</span>
+            <input type="number" min="0" max="59" style={{ width: "50%" }} value={(parseInt(vals.durationMin) || 0) % 60}
+              onChange={(e) => { const m = Math.min(59, parseInt(e.target.value) || 0); set("durationMin", Math.floor((parseInt(vals.durationMin) || 0) / 60) * 60 + m); }} />
+            <span style={{ fontWeight: 400 }}>m</span>
+          </div>
+        </label>
         <label className="field">
           <span>Days (leave empty for every day)</span>
           <div className="chip-row">
@@ -1821,9 +2129,9 @@ function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule,
             {dayItems.length === 0 && dayEvents.length === 0 && <div className="cal-empty">Nothing scheduled</div>}
             {dayItems.map((item) => (
               <div key={item.id} className="cal-item schedule" onClick={() => { setEditing(item); setShowForm(true); }}>
-                <span>{item.type === "sleep" ? "😴" : item.type === "feed" ? "🍼" : "📌"}</span>
+                <span>{typeEmoji(item.type)}</span>
                 <span className="cal-item-label">{item.label || (item.type === "sleep" ? "Nap" : "Feeding")}</span>
-                <span className="cal-item-time">{fmtTime(item.time)}</span>
+                <span className="cal-item-time">{fmtTime(item.time)}{parseInt(item.durationMin) ? ` · ${durLabel(parseInt(item.durationMin))}` : ""}</span>
               </div>
             ))}
             {dayEvents.map((ev) => (
@@ -1851,26 +2159,25 @@ function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule,
   );
 }
 
-function Ring({ radius, stroke, progress, color, trackColor }) {
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - Math.min(1, Math.max(0, progress)));
+function Sparkline({ values, color }) {
+  if (!values || values.length < 2) return null;
+  const w = 52, h = 18;
+  const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
+  const pts = values.map((v, i) => `${(i / (values.length - 1) * w).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`).join(" ");
   return (
-    <>
-      <circle r={radius} fill="none" stroke={trackColor} strokeWidth={stroke} />
-      <circle r={radius} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90)" />
-    </>
+    <svg className="metric-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.55" />
+    </svg>
   );
 }
-function ActivityRings({ sleepPct, diaperPct, feedPct }) {
-  const size = 176, c = size / 2;
+function MetricCard({ label, value, unit, trend, spark, color, onClick }) {
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-      <g transform={`translate(${c},${c})`}>
-        <Ring radius={70} stroke={13} progress={sleepPct} color="#6E93A8" trackColor="#E4EAF0" />
-        <Ring radius={52} stroke={13} progress={diaperPct} color="#DE9138" trackColor="#F5E7D3" />
-        <Ring radius={34} stroke={13} progress={feedPct} color="#5F7A5A" trackColor="#E1E8DE" />
-      </g>
-    </svg>
+    <div className="metric-card" onClick={onClick}>
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}{unit && <span className="unit">{unit}</span>}</div>
+      {trend && <div className={`metric-trend ${trend.dir}`}>{trend.arrow} {trend.text}</div>}
+      {spark && spark.length >= 2 && <Sparkline values={spark} color={color} />}
+    </div>
   );
 }
 
@@ -1905,7 +2212,7 @@ function UpNextCard({ data, token, setView }) {
     }
   }
   upcomingSchedule(schedule, 3).forEach(({ dt, item }) => {
-    rows.push({ dt, icon: item.type === "sleep" ? "😴" : item.type === "feed" ? "🍼" : "📌", label: item.label || (item.type === "sleep" ? "Nap" : "Feeding"), right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", onClick: () => setView("calendar") });
+    rows.push({ dt, icon: typeEmoji(item.type), label: item.label || (item.type === "sleep" ? "Nap" : "Feeding"), right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", onClick: () => setView("calendar") });
   });
   googleToday.slice(0, 3).forEach((ev) => {
     const dt = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
@@ -1961,6 +2268,24 @@ function TodayScreen({ data, token, setView }) {
   const ydDirty = ydDiapers.filter((d) => d.type === "Dirty" || d.type === "Both").length;
   const hasYesterday = ydFeeds > 0 || ydSleepMin > 0 || ydDiapers.length > 0;
 
+  // Per-day series for the last 7 days (oldest→newest), used for sparklines + trend-vs-average
+  const days7 = Array.from({ length: 7 }, (_, i) => localDateStr(new Date(Date.now() - (6 - i) * 86400000)));
+  const feedSeries = days7.map((ds) => nursing.filter((n) => n.date === ds).length);
+  const sleepSeries = days7.map((ds) => sleep.filter((s) => s.date === ds).reduce((a, e) => a + (minutesBetween(e.start, e.end) || 0), 0) / 60);
+  const diaperSeries = days7.map((ds) => diapers.filter((d) => d.date === ds).length);
+  // Average of the prior 6 complete days (exclude today, which is still in progress)
+  const avgOf = (series) => { const prior = series.slice(0, 6).filter((_, i) => days7[i] !== today); const nz = prior.length ? prior : series.slice(0, 6); return nz.reduce((a, b) => a + b, 0) / (nz.length || 1); };
+  const feedAvg = avgOf(feedSeries), sleepAvg = avgOf(sleepSeries), diaperAvg = avgOf(diaperSeries);
+  const sleepHrToday = sleepMinToday / 60;
+  const trend = (now, avg, unitTail) => {
+    if (!avg) return null;
+    const diff = now - avg;
+    const pct = Math.abs(diff / avg);
+    if (pct < 0.12) return { dir: "flat", arrow: "→", text: `about avg${unitTail}` };
+    return diff > 0 ? { dir: "up", arrow: "↑", text: `vs ${avg.toFixed(unitTail ? 1 : 0)}${unitTail} avg` } : { dir: "down", arrow: "↓", text: `vs ${avg.toFixed(unitTail ? 1 : 0)}${unitTail} avg` };
+  };
+  const { lastFeedDt } = deriveStatus(data);
+
   return (
     <div className="screen">
       <div className="today-hero">
@@ -1979,16 +2304,21 @@ function TodayScreen({ data, token, setView }) {
 
       <UpNextCard data={data} token={token} setView={setView} />
 
-      <Card>
-        <div className="rings-row">
-          <ActivityRings sleepPct={sleepMinToday / expectedSleepMin} diaperPct={diapersToday.length / expectedDiapers} feedPct={feedsToday.length / expectedFeeds} />
-          <div className="rings-legend">
-            <div><span className="dot" style={{ background: "#6E93A8" }} />Sleep · {durLabel(sleepMinToday) || "0m"} / {profile.expectedSleepHours || 14}h</div>
-            <div><span className="dot" style={{ background: "#DE9138" }} />Diapers · {diapersToday.length} / {expectedDiapers}</div>
-            <div><span className="dot" style={{ background: "#5F7A5A" }} />Feeds · {feedsToday.length} / {expectedFeeds}</div>
-          </div>
-        </div>
-      </Card>
+      <div className="stat-label" style={{ margin: "2px 2px 8px" }}>Today so far</div>
+      <div className="metric-grid">
+        <MetricCard label="🍼 Feeds" value={feedsToday.length} trend={trend(feedsToday.length, feedAvg, "")} spark={feedSeries} color="var(--moss)" onClick={() => setView("log")} />
+        <MetricCard label="😴 Sleep" value={sleepHrToday.toFixed(1)} unit="h" trend={trend(sleepHrToday, sleepAvg, "h")} spark={sleepSeries} color="var(--sky)" onClick={() => setView("log")} />
+        <MetricCard label="🚼 Diapers" value={diapersToday.length} trend={trend(diapersToday.length, diaperAvg, "")} spark={diaperSeries} color="var(--marigold)" onClick={() => setView("log")} />
+        <MetricCard label="⏱️ Last feed" value={lastFeedDt ? agoLabel(lastFeedDt).replace(" ago", "") : "—"} trend={lastFeedDt ? { dir: "flat", arrow: "", text: `${data.nursing.slice().sort((a,b)=>`${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0]?.side || ""}` } : null} color="var(--plum)" onClick={() => setView("log")} />
+      </div>
+
+      {data.advisor && data.advisor.tips && data.advisor.tips.length > 0 && (
+        <Card onClick={() => setView("ask")}>
+          <div className="stat-label">💡 From this week's guide</div>
+          <div className="item-title" style={{ marginTop: 5 }}>{data.advisor.tips[0].title}</div>
+          <div className="item-sub">{data.advisor.tips[0].body}</div>
+        </Card>
+      )}
 
       {hasYesterday && (
         <Card onClick={() => setView("history")}>
@@ -2081,8 +2411,10 @@ function App() {
     try {
       const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
       if (row?.data) {
-        setData(deepMerge(DEF, row.data));
+        const merged = deepMerge(DEF, row.data);
+        setData(merged);
         runBackup(row.data);
+        maybeAutoGuide(merged);
       }
     } catch (e) {
       console.error("Load failed", e);
@@ -2116,6 +2448,24 @@ function App() {
   };
   const updateIn = (key) => (item) => update((prev) => ({ ...prev, [key]: prev[key].map((x) => (x.id === item.id ? item : x)) }));
   const deleteFrom = (key) => (id) => update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) }));
+  const delC = (key) => withConfirm(deleteFrom(key)); // confirmed deletes for UI buttons (toast Undo stays instant)
+
+  const guideRanRef = useRef(false);
+  async function maybeAutoGuide(d) {
+    if (guideRanRef.current) return;
+    guideRanRef.current = true;
+    const key = localStorage.getItem("lf_api_key");
+    if (!key) return;
+    const last = d.advisor && d.advisor.lastRun ? new Date(d.advisor.lastRun).getTime() : 0;
+    if (Date.now() - last < 7 * 86400000) return;
+    try {
+      const tips = await generateGuideTips(key, d);
+      update({ advisor: { lastRun: new Date().toISOString(), ageAtRun: ageString(d.profile.dob), tips } });
+      if ("Notification" in window && Notification.permission === "granted" && tips[0]) {
+        new Notification("Little Foot — this week's guide", { body: tips[0].title });
+      }
+    } catch (e) { /* quiet — the Guide screen has a manual Refresh */ }
+  }
 
   const quickDiaper = (type) => {
     const item = { id: uid(), date: todayStr(), time: nowTime(), type };
@@ -2217,47 +2567,47 @@ function App() {
             onQuickDiaper={quickDiaper} onAddDiaper={addTo("diapers")}
           />
         )}
-        {view === "history" && <HistoryScreen data={data} updateIn={updateIn} deleteFrom={deleteFrom} />}
+        {view === "history" && <HistoryScreen data={data} updateIn={updateIn} deleteFrom={delC} />}
         {view === "calendar" && (
-          <CalendarScreen schedule={data.schedule} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={deleteFrom("schedule")} />
+          <CalendarScreen schedule={data.schedule} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={delC("schedule")} />
         )}
         {view === "more" && <MoreScreen setView={setView} />}
         {view === "growth" && (
-          <GrowthScreen items={data.growth} profile={data.profile} onAdd={addTo("growth")} onDelete={deleteFrom("growth")} />
+          <GrowthScreen items={data.growth} data={data} profile={data.profile} onAdd={addTo("growth")} onDelete={delC("growth")} />
         )}
         {view === "health" && (
           <ListSection title="Health" icon="🩺" items={data.health} fields={HEALTH_FIELDS}
             renderTitle={(i) => `${i.type || "Visit"}${i.doctor ? ` with ${i.doctor}` : ""}`}
             extraAction={(i) => <IconBtn onClick={(e) => { e.stopPropagation(); downloadICS({ title: `Doctor visit${i.doctor ? ` with ${i.doctor}` : ""}`, date: i.date, notes: i.notes }); }}>📅</IconBtn>}
-            onAdd={addTo("health")} onUpdate={updateIn("health")} onDelete={deleteFrom("health")} emptyText="No doctor visits logged yet." />
+            onAdd={addTo("health")} onUpdate={updateIn("health")} onDelete={delC("health")} emptyText="No doctor visits logged yet." />
         )}
         {view === "milestones" && (
           <ListSection title="Milestones" icon="⭐" items={data.milestones} fields={MILESTONE_FIELDS}
             renderTitle={(i) => i.title} renderSub={(i) => `${i.category || ""} · ${fmtDate(i.date)}`}
-            onAdd={addTo("milestones")} onUpdate={updateIn("milestones")} onDelete={deleteFrom("milestones")} emptyText="No milestones logged yet." />
+            onAdd={addTo("milestones")} onUpdate={updateIn("milestones")} onDelete={delC("milestones")} emptyText="No milestones logged yet." />
         )}
         {view === "words" && (
           <ListSection title="First words" icon="💬" items={data.words} fields={WORDS_FIELDS}
             renderTitle={(i) => `"${i.word}"`} renderSub={(i) => fmtDate(i.date)}
-            onAdd={addTo("words")} onUpdate={updateIn("words")} onDelete={deleteFrom("words")} emptyText="No words logged yet." />
+            onAdd={addTo("words")} onUpdate={updateIn("words")} onDelete={delC("words")} emptyText="No words logged yet." />
         )}
         {view === "journal" && (
-          <JournalScreen items={data.journal} profile={data.profile} onAdd={addTo("journal")} onDelete={deleteFrom("journal")} />
+          <JournalScreen items={data.journal} profile={data.profile} onAdd={addTo("journal")} onDelete={delC("journal")} />
         )}
         {view === "symptoms" && (
           <ListSection title="Symptoms" icon="🤒" items={data.symptoms} fields={SYMPTOM_FIELDS}
             renderTitle={(i) => `${i.type || "Symptom"}${i.temp ? ` · ${i.temp}°F` : ""}`} renderSub={(i) => `${i.severity || ""} · ${fmtDate(i.date)}`}
-            onAdd={addTo("symptoms")} onUpdate={updateIn("symptoms")} onDelete={deleteFrom("symptoms")} emptyText="No symptoms logged yet." />
+            onAdd={addTo("symptoms")} onUpdate={updateIn("symptoms")} onDelete={delC("symptoms")} emptyText="No symptoms logged yet." />
         )}
         {view === "vaccines" && (
           <ListSection title="Vaccines" icon="💉" items={data.vaccines} fields={VACCINE_FIELDS} sortKey="scheduled"
             renderTitle={(i) => i.name} renderSub={(i) => i.given ? `Given ${fmtDate(i.given)}` : i.scheduled ? `Scheduled ${fmtDate(i.scheduled)}` : ""}
             tone={(i) => (i.given ? "given" : "scheduled")}
             extraAction={(i) => (!i.given && i.scheduled ? <IconBtn onClick={(e) => { e.stopPropagation(); downloadICS({ title: `${i.name} vaccine`, date: i.scheduled, notes: i.notes }); }}>📅</IconBtn> : null)}
-            onAdd={addTo("vaccines")} onUpdate={updateIn("vaccines")} onDelete={deleteFrom("vaccines")} emptyText="No vaccines logged yet." />
+            onAdd={addTo("vaccines")} onUpdate={updateIn("vaccines")} onDelete={delC("vaccines")} emptyText="No vaccines logged yet." />
         )}
         {view === "prebirth" && <PreBirthScreen data={data} update={update} />}
-        {view === "ask" && <AskScreen data={data} profile={data.profile} />}
+        {view === "ask" && <GuideScreen data={data} update={update} onAddLearning={addTo("learnings")} onDeleteLearning={delC("learnings")} />}
         {view === "profile" && (
           <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })}
             deviceParent={deviceParent} setDeviceParent={setDeviceParent}
