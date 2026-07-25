@@ -238,27 +238,75 @@ const SUPABASE_URL = "https://dlfdefgqqmfvoygissak.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsZmRlZmdxcW1mdm95Z2lzc2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMDQxNDUsImV4cCI6MjA5ODY4MDE0NX0.bxsOoopi77wo1ttGx3GKUoxRxNWmUBU3VEf6uWGw2wg";
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+/* ---------- Web Push (schedule reminders) ---------- */
+// Public key only — safe to ship in client code. Its matching private key lives in
+// Vercel as VAPID_PRIVATE_KEY and is used server-side in /api/send-reminders.
+const VAPID_PUBLIC_KEY = "BG7bOF3rgQzE-X7SW8ht9tQX_kguK6qJ__f49z4rJy-iSA7SjAYjQK3bzQwz6uWn-PIinP_Z07F0Bz8vhjcz6Ts";
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+async function subscribeToPush(deviceParent) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) throw new Error("unsupported");
+  if (Notification.permission !== "granted") {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") throw new Error("denied");
+  }
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+  const json = sub.toJSON();
+  if (sb) {
+    const { error } = await sb.from("push_subscriptions").upsert(
+      { endpoint: json.endpoint, subscription: json, by: deviceParent || null, updated_at: new Date().toISOString() },
+      { onConflict: "endpoint" }
+    );
+    if (error) throw error;
+  }
+  localStorage.setItem("lf_push_enabled", "1");
+  return true;
+}
+async function unsubscribeFromPush() {
+  if (!("serviceWorker" in navigator)) return;
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg && (await reg.pushManager.getSubscription());
+  if (sub) {
+    const endpoint = sub.endpoint;
+    await sub.unsubscribe();
+    if (sb) await sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  }
+  localStorage.removeItem("lf_push_enabled");
+}
+
 /* ---------- Defaults ---------- */
 const DEF = {
   profile: {
     name: "", dob: "", sex: "", bloodType: "", parent1: "", parent2: "", units: "imperial", reminderHours: 3,
     expectedSleepHours: 14, expectedDiapers: 6, expectedFeeds: 8,
     carePlan: "Planning to breastfeed for 6 months.",
+    googleCalendarId: "", scheduleReminderLeadMin: 15, timezone: "America/Los_Angeles",
   },
   growth: [],
   health: [],
   nursing: [],
+  pumping: [],
   solids: [],
   sleep: [],
   activeSleep: null,
   activeFeeding: null,
+  activePumping: null,
   milestones: [],
   words: [],
   journal: [],
   diapers: [],
+  activities: [],
   symptoms: [],
   vaccines: [],
-  prebirth: { contractions: [], checklist: [], registry: [] },
+  postpartum: [],
+  prebirth: { contractions: [], checklist: [] },
   schedule: [],
   learnings: [],
   advisor: { lastRun: null, ageAtRun: "", tips: [] },
@@ -536,14 +584,15 @@ function useGoogleAuth() {
 
   return { token, status };
 }
-async function fetchGoogleEvents(token, timeMin, timeMax) {
-  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
+async function fetchGoogleEvents(token, timeMin, timeMax, calendarId) {
+  const cal = encodeURIComponent(calendarId || "primary");
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${cal}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error("Google Calendar fetch failed");
   return (await res.json()).items || [];
 }
 function rruleDay(i) { return ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][i]; }
-async function pushScheduleToGoogle(token, item) {
+async function pushScheduleToGoogle(token, item, calendarId, leadMin) {
   const [h, m] = item.time.split(":").map(Number);
   const start = new Date(); start.setHours(h, m, 0, 0);
   const end = new Date(start.getTime() + (parseInt(item.durationMin) || 30) * 60000);
@@ -553,8 +602,10 @@ async function pushScheduleToGoogle(token, item) {
     start: { dateTime: start.toISOString() },
     end: { dateTime: end.toISOString() },
     recurrence: [item.days?.length && item.days.length < 7 ? `RRULE:FREQ=WEEKLY;BYDAY=${item.days.map(rruleDay).join(",")}` : "RRULE:FREQ=DAILY"],
+    reminders: { useDefault: false, overrides: [{ method: "popup", minutes: parseInt(leadMin) || 15 }] },
   };
-  const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+  const cal = encodeURIComponent(calendarId || "primary");
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${cal}/events`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -834,6 +885,15 @@ const NURSING_FIELDS = [
   { key: "amount", label: "Amount (oz — bottle feeds)", type: "number" },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
+const PUMPING_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "time", label: "Time", type: "time", required: true },
+  { key: "duration", label: "Duration (min)", type: "number" },
+  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both"] },
+  { key: "amount", label: "Amount pumped (oz)", type: "number" },
+  { key: "storage", label: "Storage", type: "select", options: ["Fed fresh", "Refrigerated", "Frozen"] },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
 const SOLIDS_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
   { key: "food", label: "Food", type: "text", required: true },
@@ -875,6 +935,24 @@ const VACCINE_FIELDS = [
   { key: "name", label: "Vaccine", type: "text", required: true },
   { key: "scheduled", label: "Scheduled date", type: "date" },
   { key: "given", label: "Date given", type: "date" },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
+const ACTIVITY_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "time", label: "Time", type: "time" },
+  { key: "type", label: "Activity", type: "select", options: ["Tummy Time", "Reading", "Sensory Play", "Outdoor Time", "Floor / Free Play", "Music & Movement", "Bath Play", "Mirror Play", "Massage", "Other"], required: true },
+  { key: "duration", label: "Duration (min)", type: "number" },
+  { key: "engagement", label: "How it went", type: "select", options: ["Loved it", "Neutral", "Fussy"] },
+  { key: "notes", label: "Notes / observations", type: "textarea" },
+];
+const POSTPARTUM_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "loggedBy", label: "Logged by", type: "select", options: ["Taylor", "Luke"] },
+  { key: "type", label: "Type", type: "select", options: ["Symptom", "OBGYN visit", "Mental health check-in", "Medication", "Other"], required: true },
+  { key: "description", label: "What's going on", type: "text" },
+  { key: "severity", label: "Severity", type: "select", options: ["Mild", "Moderate", "Severe"] },
+  { key: "provider", label: "Provider (for visits)", type: "text" },
+  { key: "nextAppt", label: "Next appointment", type: "date" },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
 
@@ -995,16 +1073,17 @@ function PatternStrip({ sleep, nursing, diapers, activeSleep }) {
 
 /* ---------- Log screen: feed, sleep, and diaper capture in one place ---------- */
 const MINUTES_AGO_OPTIONS = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120];
-function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSolid, onStartSleep, onStopSleep, onAddSleep, onQuickDiaper, onAddDiaper }) {
-  const [sheet, setSheet] = useState(null); // "feed" | "solid" | "sleep" | "diaper"
+function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSolid, onStartSleep, onStopSleep, onAddSleep, onQuickDiaper, onAddDiaper, onStartPumping, onStopPumping, onAddPumping, onAddActivity }) {
+  const [sheet, setSheet] = useState(null); // "feed" | "solid" | "sleep" | "diaper" | "pump" | "activity"
   const [sleepType, setSleepType] = useState("Nap");
   const [minutesAgo, setMinutesAgo] = useState(0);
+  const [pumpInitial, setPumpInitial] = useState(null);
   const [, setTick] = useState(0);
   useEffect(() => {
-    if (!data.activeFeeding && !data.activeSleep) return;
+    if (!data.activeFeeding && !data.activeSleep && !data.activePumping) return;
     const t = setInterval(() => setTick((x) => x + 1), 1000);
     return () => clearInterval(t);
-  }, [data.activeFeeding, data.activeSleep]);
+  }, [data.activeFeeding, data.activeSleep, data.activePumping]);
 
   const lastSideFeed = useMemo(
     () => [...data.nursing].filter((n) => n.side === "Left" || n.side === "Right").sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0],
@@ -1013,6 +1092,21 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
   const nextSide = lastSideFeed?.side === "Left" ? "Right" : lastSideFeed?.side === "Right" ? "Left" : null;
   const active = data.activeFeeding;
   const asleep = data.activeSleep;
+  const pumping = data.activePumping;
+
+  const today = todayStr();
+  const tummyTimeToday = data.activities.filter((a) => a.date === today && a.type === "Tummy Time").reduce((s, a) => s + (parseInt(a.duration) || 0), 0);
+
+  function finishPumping() {
+    const draft = onStopPumping();
+    if (!draft) return;
+    setPumpInitial(draft);
+    setSheet("pump-finish");
+  }
+
+  function quickTummyTime(minutes) {
+    onAddActivity({ id: uid(), date: today, time: nowTime(), type: "Tummy Time", duration: minutes });
+  }
 
   return (
     <div className="screen">
@@ -1090,6 +1184,45 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
         </div>
       </Card>
 
+      {/* Pumping */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🤱 Pumping</div>
+          <button className="link-btn" onClick={() => { setPumpInitial({ date: todayStr(), time: nowTime() }); setSheet("pump-finish"); }}>Log past session</button>
+        </div>
+        {pumping ? (
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">Pumping… {durLabel(Math.round((Date.now() - new Date(pumping.startedAt).getTime()) / 60000))} · {pumping.side}</div>
+              <div className="item-sub">Started {fmtTime(pumping.start)}</div>
+            </div>
+            <Btn variant="danger" onClick={finishPumping}>Stop</Btn>
+          </div>
+        ) : (
+          <div className="side-btns three">
+            <button className="side-btn" onClick={() => onStartPumping("Left")}>▶ Left</button>
+            <button className="side-btn" onClick={() => onStartPumping("Right")}>▶ Right</button>
+            <button className="side-btn" onClick={() => onStartPumping("Both")}>▶ Both</button>
+          </div>
+        )}
+      </Card>
+
+      {/* Tummy time & developmental play */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🧸 Tummy time &amp; play</div>
+          <button className="link-btn" onClick={() => setSheet("activity")}>+ Log activity</button>
+        </div>
+        <div className="item-sub" style={{ marginBottom: 9 }}>
+          {tummyTimeToday > 0 ? `${durLabel(tummyTimeToday)} of tummy time today.` : "No tummy time logged today yet."} A few short sessions spread through the day works better than one long one.
+        </div>
+        <div className="quick-actions three">
+          <Btn variant="ghost" onClick={() => quickTummyTime(2)}>+2 min</Btn>
+          <Btn variant="ghost" onClick={() => quickTummyTime(5)}>+5 min</Btn>
+          <Btn variant="ghost" onClick={() => quickTummyTime(10)}>+10 min</Btn>
+        </div>
+      </Card>
+
       {sheet === "feed" && (
         <Sheet onClose={() => setSheet(null)}>
           <EntryForm fields={NURSING_FIELDS} initial={{ date: todayStr(), time: nowTime() }} title="Log past feeding"
@@ -1114,6 +1247,18 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
             onCancel={() => setSheet(null)} onSave={(v) => { onAddDiaper(v); setSheet(null); }} />
         </Sheet>
       )}
+      {sheet === "pump-finish" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={PUMPING_FIELDS} initial={pumpInitial || { date: todayStr(), time: nowTime() }} title="Log pumping session"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddPumping(v); setSheet(null); }} />
+        </Sheet>
+      )}
+      {sheet === "activity" && (
+        <Sheet onClose={() => setSheet(null)}>
+          <EntryForm fields={ACTIVITY_FIELDS} initial={{ date: todayStr(), time: nowTime() }} title="Log activity"
+            onCancel={() => setSheet(null)} onSave={(v) => { onAddActivity(v); setSheet(null); }} />
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -1124,6 +1269,8 @@ const HISTORY_KINDS = {
   solid: { key: "solids", fields: SOLIDS_FIELDS, label: "solid food" },
   sleep: { key: "sleep", fields: SLEEP_FIELDS, label: "sleep" },
   diaper: { key: "diapers", fields: DIAPER_FIELDS, label: "diaper" },
+  pump: { key: "pumping", fields: PUMPING_FIELDS, label: "pumping session" },
+  activity: { key: "activities", fields: ACTIVITY_FIELDS, label: "activity" },
 };
 function HistoryScreen({ data, updateIn, deleteFrom }) {
   const [filter, setFilter] = useState("all");
@@ -1135,8 +1282,10 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
     data.solids.forEach((i) => arr.push({ kind: "solid", wid: "o" + i.id, date: i.date, time: "", item: i }));
     data.sleep.forEach((i) => arr.push({ kind: "sleep", wid: "s" + i.id, date: i.date, time: i.start || "", item: i }));
     data.diapers.forEach((i) => arr.push({ kind: "diaper", wid: "d" + i.id, date: i.date, time: i.time || "", item: i }));
+    data.pumping.forEach((i) => arr.push({ kind: "pump", wid: "p" + i.id, date: i.date, time: i.time || "", item: i }));
+    data.activities.forEach((i) => arr.push({ kind: "activity", wid: "a" + i.id, date: i.date, time: i.time || "", item: i }));
     return filter === "all" ? arr : arr.filter((e) => e.kind === filter);
-  }, [data.nursing, data.solids, data.sleep, data.diapers, filter]);
+  }, [data.nursing, data.solids, data.sleep, data.diapers, data.pumping, data.activities, filter]);
 
   const entryTitle = (e) => {
     const i = e.item;
@@ -1145,6 +1294,8 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
       : `🍼 ${i.side || "Feeding"}${i.duration ? ` · ${i.duration}m` : ""}`;
     if (e.kind === "solid") return `🥣 ${i.food || "Solid food"}${i.reaction && i.reaction !== "None" ? ` — ${i.reaction}` : ""}`;
     if (e.kind === "sleep") return `${i.type === "Night" ? "🌙" : "😴"} ${i.type || "Sleep"} · ${fmtTime(i.start)}${i.end ? ` – ${fmtTime(i.end)}` : ""}`;
+    if (e.kind === "pump") return `🤱 ${i.side || "Pumping"}${i.amount ? ` · ${i.amount} oz` : ""}${i.duration ? ` · ${i.duration}m` : ""}`;
+    if (e.kind === "activity") return `🧸 ${i.type || "Activity"}${i.duration ? ` · ${i.duration}m` : ""}`;
     return `${DIAPER_EMOJI[i.type] || "🚼"} ${i.type || "Diaper"}`;
   };
   const entrySub = (e) => {
@@ -1154,6 +1305,8 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
       const mins = minutesBetween(i.start, i.end);
       if (mins != null) bits.push(durLabel(mins));
     } else if (i.time) bits.push(fmtTime(i.time));
+    if (e.kind === "pump" && i.storage) bits.push(i.storage);
+    if (e.kind === "activity" && i.engagement) bits.push(i.engagement);
     if (i.by) bits.push(i.by);
     return bits.join(" · ") || fmtDate(i.date);
   };
@@ -1171,9 +1324,9 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
     </Card>
   );
   const summarize = (arr) => {
-    const c = { feed: 0, solid: 0, sleep: 0, diaper: 0 };
+    const c = { feed: 0, solid: 0, sleep: 0, diaper: 0, pump: 0, activity: 0 };
     arr.forEach((e) => c[e.kind]++);
-    return [c.feed + c.solid ? `${c.feed + c.solid}🍼` : "", c.sleep ? `${c.sleep}😴` : "", c.diaper ? `${c.diaper}🚼` : ""].filter(Boolean).join(" ") || `${arr.length}`;
+    return [c.feed + c.solid ? `${c.feed + c.solid}🍼` : "", c.sleep ? `${c.sleep}😴` : "", c.diaper ? `${c.diaper}🚼` : "", c.pump ? `${c.pump}🤱` : "", c.activity ? `${c.activity}🧸` : ""].filter(Boolean).join(" ") || `${arr.length}`;
   };
 
   return (
@@ -1181,7 +1334,7 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
       <div className="screen-head"><h2>🕐 History</h2></div>
       <PatternStrip sleep={data.sleep} nursing={data.nursing} diapers={data.diapers} activeSleep={data.activeSleep} />
       <div className="chip-row" style={{ marginBottom: 12 }}>
-        {[["all", "All"], ["feed", "🍼 Feeds"], ["sleep", "😴 Sleep"], ["diaper", "🚼 Diapers"], ["solid", "🥣 Solids"]].map(([k, label]) => (
+        {[["all", "All"], ["feed", "🍼 Feeds"], ["sleep", "😴 Sleep"], ["diaper", "🚼 Diapers"], ["solid", "🥣 Solids"], ["pump", "🤱 Pumping"], ["activity", "🧸 Activities"]].map(([k, label]) => (
           <button key={k} className={filter === k ? "chip active" : "chip"} onClick={() => setFilter(k)}>{label}</button>
         ))}
       </div>
@@ -1531,6 +1684,21 @@ function ProfileScreen({ profile, onSave, deviceParent, setDeviceParent, onExpor
         <label className="field"><span>Expected sleep (hours/day)</span><input type="number" value={vals.expectedSleepHours ?? 14} onChange={(e) => set("expectedSleepHours", e.target.value)} /></label>
         <label className="field"><span>Expected diapers/day</span><input type="number" value={vals.expectedDiapers ?? 6} onChange={(e) => set("expectedDiapers", e.target.value)} /></label>
         <label className="field"><span>Expected feeds/day</span><input type="number" value={vals.expectedFeeds ?? 8} onChange={(e) => set("expectedFeeds", e.target.value)} /></label>
+        <div className="field-group-label">Calendar &amp; reminders</div>
+        <label className="field">
+          <span>Google Calendar ID</span>
+          <input value={vals.googleCalendarId || ""} onChange={(e) => set("googleCalendarId", e.target.value)} placeholder="Leave blank for your main calendar" />
+        </label>
+        <p className="rule-note" style={{ margin: "-4px 0 0" }}>To use a shared family calendar instead of your own, open it on Google Calendar → Settings → find your calendar under "Settings for my calendars" → copy the <strong>Calendar ID</strong> from "Integrate calendar" and paste it here.</p>
+        <label className="field">
+          <span>Remind us this many minutes before each routine</span>
+          <input type="number" value={vals.scheduleReminderLeadMin ?? 15} onChange={(e) => set("scheduleReminderLeadMin", e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Household timezone (for push reminder timing)</span>
+          <input value={vals.timezone || "America/Los_Angeles"} onChange={(e) => set("timezone", e.target.value)} placeholder="America/Los_Angeles" />
+        </label>
+        <p className="rule-note" style={{ margin: "-4px 0 0" }}>Use an IANA timezone name (e.g. <code>America/Los_Angeles</code>, <code>America/New_York</code>). This only matters for background push reminders, which run on a server and otherwise wouldn't know your local time.</p>
         <Btn full onClick={() => onSave(vals)}>Save profile</Btn>
       </div>
 
@@ -1554,6 +1722,9 @@ const MORE_GROUPS = [
     { key: "health", icon: "🩺", label: "Health visits" },
     { key: "symptoms", icon: "🤒", label: "Symptoms" },
     { key: "vaccines", icon: "💉", label: "Vaccines" },
+  ]},
+  { label: "Parents", items: [
+    { key: "postpartum", icon: "🌷", label: "Postpartum" },
   ]},
   { label: "Memories", items: [
     { key: "milestones", icon: "⭐", label: "Milestones" },
@@ -1796,7 +1967,6 @@ function PreBirthScreen({ data, update }) {
       <div className="subtabs">
         <button className={sub === "contractions" ? "subtab active" : "subtab"} onClick={() => setSub("contractions")}>Contractions</button>
         <button className={sub === "bag" ? "subtab active" : "subtab"} onClick={() => setSub("bag")}>Hospital bag</button>
-        <button className={sub === "registry" ? "subtab active" : "subtab"} onClick={() => setSub("registry")}>Registry</button>
       </div>
       {sub === "contractions" && (
         <ContractionScreen
@@ -1813,15 +1983,102 @@ function PreBirthScreen({ data, update }) {
           onDelete={withConfirm((id) => patch((p) => ({ ...p, checklist: p.checklist.filter((x) => x.id !== id) })))}
         />
       )}
-      {sub === "registry" && (
-        <ChecklistScreen
-          withCost
-          items={pb.registry}
-          onAdd={(item) => patch((p) => ({ ...p, registry: [...p.registry, item] }))}
-          onToggle={(id) => patch((p) => ({ ...p, registry: p.registry.map((x) => (x.id === id ? { ...x, checked: !x.checked } : x)) }))}
-          onDelete={withConfirm((id) => patch((p) => ({ ...p, registry: p.registry.filter((x) => x.id !== id) })))}
-        />
+    </div>
+  );
+}
+
+/* ---------- Postpartum: shared symptom/visit log for Taylor, with a printable OBGYN report ---------- */
+function PostpartumScreen({ data, onAdd, onUpdate, onDelete }) {
+  const items = data.postpartum;
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [rangeFrom, setRangeFrom] = useState(() => localDateStr(new Date(Date.now() - 60 * 86400000)));
+  const [rangeTo, setRangeTo] = useState(todayStr());
+  const rangeDays = Math.max(1, Math.round((new Date(rangeTo + "T00:00:00") - new Date(rangeFrom + "T00:00:00")) / 86400000) + 1);
+
+  const sorted = useMemo(() => [...items].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))), [items]);
+  const upcoming = useMemo(
+    () => [...items].filter((i) => i.nextAppt && i.nextAppt >= todayStr()).sort((a, b) => String(a.nextAppt).localeCompare(String(b.nextAppt)))[0],
+    [items]
+  );
+  const inRange = sorted.filter((i) => i.date >= rangeFrom && i.date <= rangeTo);
+  const symptomCount = inRange.filter((i) => i.type === "Symptom").length;
+  const visitCount = inRange.filter((i) => i.type === "OBGYN visit").length;
+
+  const typeIcon = (t) => (t === "OBGYN visit" ? "🩺" : t === "Mental health check-in" ? "💗" : t === "Medication" ? "💊" : "🌷");
+  const renderTitle = (i) => `${typeIcon(i.type)} ${i.description || i.type || "Entry"}`;
+  const renderSub = (i) => [i.type, i.severity, i.loggedBy, fmtDate(i.date)].filter(Boolean).join(" · ");
+
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>🌷 Postpartum</h2><Btn onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</Btn></div>
+      <p className="rule-note" style={{ margin: "0 0 12px" }}>A shared space for Taylor and Luke to log how recovery is going — symptoms, OBGYN visits, and how she's feeling.</p>
+
+      {upcoming && (
+        <Card>
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">📅 Next OBGYN appointment</div>
+              <div className="item-sub">{fmtDate(upcoming.nextAppt)}{upcoming.provider ? ` · ${upcoming.provider}` : ""}</div>
+            </div>
+            <IconBtn onClick={() => downloadICS({ title: `OBGYN appointment${upcoming.provider ? ` with ${upcoming.provider}` : ""}`, date: upcoming.nextAppt, notes: upcoming.notes })}>📅</IconBtn>
+          </div>
+        </Card>
       )}
+
+      <Card>
+        <div className="item-title">🖨️ Postpartum report</div>
+        <p className="rule-note" style={{ margin: "6px 0 10px" }}>A printable summary of symptoms and visits for Taylor's OBGYN — print it or save as a PDF.</p>
+        <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+          <label className="field" style={{ flex: 1 }}><span>From</span><input type="date" value={rangeFrom} max={rangeTo} onChange={(e) => setRangeFrom(e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span>To</span><input type="date" value={rangeTo} min={rangeFrom} max={todayStr()} onChange={(e) => setRangeTo(e.target.value)} /></label>
+        </div>
+        <Btn variant="ghost" full onClick={() => window.print()}>Print / save PDF ({rangeDays} day{rangeDays === 1 ? "" : "s"})</Btn>
+      </Card>
+
+      {sorted.length === 0 && <EmptyState text="Nothing logged yet." />}
+      <div className="list">
+        {sorted.map((item) => (
+          <Card key={item.id} onClick={() => setEditing(item)}>
+            <div className="row">
+              <div className="grow">
+                <div className="item-title">{renderTitle(item)}</div>
+                <div className="item-sub">{renderSub(item)}</div>
+              </div>
+              <IconBtn variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}>✕</IconBtn>
+            </div>
+            {item.notes && <div className="item-notes">{item.notes}</div>}
+          </Card>
+        ))}
+      </div>
+
+      {(showForm || editing) && (
+        <Sheet onClose={() => { setShowForm(false); setEditing(null); }}>
+          <EntryForm
+            fields={POSTPARTUM_FIELDS} initial={editing || { date: todayStr() }} title={editing ? "Edit entry" : "Add entry"}
+            onCancel={() => { setShowForm(false); setEditing(null); }}
+            onSave={(v) => { if (editing) onUpdate(v); else onAdd(v); setShowForm(false); setEditing(null); }}
+            onDelete={editing ? (id) => { onDelete(id); setEditing(null); } : null}
+          />
+        </Sheet>
+      )}
+
+      <div className="print-summary">
+        <h1>Taylor — postpartum recovery summary</h1>
+        <p>Reporting period: {fmtDate(rangeFrom)} – {fmtDate(rangeTo)} ({rangeDays} days) · Printed {fmtDate(todayStr())}</p>
+        <p>{symptomCount} symptom entr{symptomCount === 1 ? "y" : "ies"} and {visitCount} OBGYN visit{visitCount === 1 ? "" : "s"} logged in this period.</p>
+        {inRange.length > 0 ? (
+          <table className="print-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Logged by</th><th>Description</th><th>Severity</th><th>Provider</th><th>Notes</th></tr></thead>
+            <tbody>
+              {inRange.map((i) => (
+                <tr key={i.id}><td>{fmtDate(i.date)}</td><td>{i.type || ""}</td><td>{i.loggedBy || ""}</td><td>{i.description || ""}</td><td>{i.severity || ""}</td><td>{i.provider || ""}</td><td>{i.notes || ""}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        ) : <p>Nothing logged in this period.</p>}
+        <p style={{ fontStyle: "italic" }}>Prepared with Little Foot.</p>
+      </div>
     </div>
   );
 }
@@ -1847,23 +2104,25 @@ Recent milestones: ${milestones}.
 What the parents found worked / didn't work: ${learnings}.
 Currently sleeping: ${data.activeSleep ? "yes" : "no"}.`;
 }
-async function generateGuideTips(apiKey, data) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+async function askClaude(system, messages, maxTokens) {
+  const res = await fetch("/api/ask", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1200,
-      system: `You are a warm, evidence-informed infant-care guide for tired parents. You are not a doctor: keep every suggestion safe, mainstream (AAP/WHO-aligned), and age-appropriate, and defer to the pediatrician for anything medical. Tailor tightly to the baby's exact age and the data provided: respect the parents' care plan, build on what they said worked, avoid what didn't, and only suggest solids/new foods when age-appropriate (noting foods not yet tried). Cover a mix across development & play, feeding (what to expect next), sleep, and one outing or activity idea. Respond with ONLY a JSON array (no markdown fences) of 4 to 6 objects: [{"title": "short imperative title", "body": "2-3 practical sentences"}].`,
-      messages: [{ role: "user", content: `Here is our baby's data. Please write this week's guide.\n\n${buildGuideContext(data)}` }],
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
   });
   const json = await res.json();
+  if (!res.ok || json.error) {
+    if (json.error === "not_configured") throw new Error("not_configured");
+    throw new Error(json.error || "request_failed");
+  }
+  return json;
+}
+async function generateGuideTips(data) {
+  const json = await askClaude(
+    `You are a warm, evidence-informed infant-care guide for tired parents. You are not a doctor: keep every suggestion safe, mainstream (AAP/WHO-aligned), and age-appropriate, and defer to the pediatrician for anything medical. Tailor tightly to the baby's exact age and the data provided: respect the parents' care plan, build on what they said worked, avoid what didn't, and only suggest solids/new foods when age-appropriate (noting foods not yet tried). Cover a mix across development & play, feeding (what to expect next), sleep, and one outing or activity idea. Respond with ONLY a JSON array (no markdown fences) of 4 to 6 objects: [{"title": "short imperative title", "body": "2-3 practical sentences"}].`,
+    [{ role: "user", content: `Here is our baby's data. Please write this week's guide.\n\n${buildGuideContext(data)}` }],
+    1200
+  );
   const text = (json.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
   const clean = text.replace(/```json|```/g, "").trim();
   const arr = JSON.parse(clean.slice(clean.indexOf("["), clean.lastIndexOf("]") + 1));
@@ -1872,23 +2131,22 @@ async function generateGuideTips(apiKey, data) {
 }
 function GuideScreen({ data, update, onAddLearning, onDeleteLearning }) {
   const profile = data.profile;
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("lf_api_key") || "");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [tipsLoading, setTipsLoading] = useState(false);
   const [learnText, setLearnText] = useState("");
-
-  function saveKey(k) { setApiKey(k); localStorage.setItem("lf_api_key", k); }
+  const [notConfigured, setNotConfigured] = useState(false);
 
   async function refreshTips() {
-    if (!apiKey) { alert("Add your Anthropic API key above first."); return; }
     setTipsLoading(true);
     try {
-      const tips = await generateGuideTips(apiKey, data);
+      const tips = await generateGuideTips(data);
       update({ advisor: { lastRun: new Date().toISOString(), ageAtRun: ageString(profile.dob), tips } });
+      setNotConfigured(false);
     } catch (e) {
-      alert("Couldn't generate the guide — check your API key and connection.");
+      if (e.message === "not_configured") setNotConfigured(true);
+      else alert("Couldn't generate the guide — check the connection and try again.");
     }
     setTipsLoading(false);
   }
@@ -1900,30 +2158,20 @@ function GuideScreen({ data, update, onAddLearning, onDeleteLearning }) {
   }
 
   async function send(text) {
-    if (!apiKey) { alert("Add your Anthropic API key above first."); return; }
     const next = [...messages, { role: "user", content: text }];
     setMessages(next); setInput(""); setLoading(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 600,
-          system: `You are a calm, practical, evidence-informed assistant helping tired parents with a newborn. You are not a doctor — recommend the pediatrician for anything medical. Baby data:\n${buildGuideContext(data)}`,
-          messages: next,
-        }),
-      });
-      const json = await res.json();
+      const json = await askClaude(
+        `You are a calm, practical, evidence-informed assistant helping tired parents with a newborn. You are not a doctor — recommend the pediatrician for anything medical. Baby data:\n${buildGuideContext(data)}`,
+        next,
+        600
+      );
       const reply = (json.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n") || "Sorry, I couldn't get a response.";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      setNotConfigured(false);
     } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", content: "Something went wrong reaching Claude. Check your API key and connection." }]);
+      if (e.message === "not_configured") setNotConfigured(true);
+      setMessages((m) => [...m, { role: "assistant", content: e.message === "not_configured" ? "The Guide isn't connected yet — see the setup note above." : "Something went wrong reaching Claude. Try again in a moment." }]);
     }
     setLoading(false);
   }
@@ -1934,10 +2182,9 @@ function GuideScreen({ data, update, onAddLearning, onDeleteLearning }) {
   return (
     <div className="screen">
       <div className="screen-head"><h2>🧭 Guide</h2></div>
-      {!apiKey && (
+      {notConfigured && (
         <Card>
-          <p className="rule-note">Bring your own Anthropic API key (from console.anthropic.com) to power the Guide. It's stored only in this browser — never synced through Supabase — but anyone using this device could view it, so consider a key with a small spend limit.</p>
-          <label className="field"><span>Anthropic API key</span><input type="password" defaultValue={apiKey} onBlur={(e) => saveKey(e.target.value)} placeholder="sk-ant-..." /></label>
+          <p className="rule-note">The Guide isn't connected yet. Add an <code>ANTHROPIC_API_KEY</code> environment variable in Vercel (from console.anthropic.com) and redeploy — then Refresh here.</p>
         </Card>
       )}
 
@@ -2054,8 +2301,49 @@ function ScheduleForm({ initial, onCancel, onSave, onDelete, onSync }) {
     </>
   );
 }
-function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule, onDeleteSchedule }) {
+function PushReminderCard({ deviceParent, leadMin }) {
+  const [enabled, setEnabled] = useState(() => localStorage.getItem("lf_push_enabled") === "1");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function enable() {
+    setBusy(true); setErr("");
+    try {
+      await subscribeToPush(deviceParent);
+      setEnabled(true);
+    } catch (e) {
+      setErr(
+        e.message === "unsupported" ? "This browser doesn't support push notifications — on iPhone, add Little Foot to your Home Screen first (Share → Add to Home Screen), then try again from there."
+        : e.message === "denied" ? "Notifications were blocked — allow them for Little Foot in your device settings, then try again."
+        : "Couldn't enable reminders on this device — try again in a moment."
+      );
+    }
+    setBusy(false);
+  }
+  async function disable() {
+    setBusy(true);
+    try { await unsubscribeFromPush(); } catch (e) { /* ignore */ }
+    setEnabled(false);
+    setBusy(false);
+  }
+
+  return (
+    <Card>
+      <div className="row">
+        <div className="grow">
+          <div className="item-title">🔔 Schedule reminders</div>
+          <div className="item-sub">{enabled ? `On for this device — pings about ${leadMin} min before each routine.` : "A push notification shortly before each scheduled item, even with the app closed."}</div>
+        </div>
+        {enabled ? <Btn variant="ghost" onClick={disable} disabled={busy}>Turn off</Btn> : <Btn onClick={enable} disabled={busy}>{busy ? "…" : "Enable"}</Btn>}
+      </div>
+      {err && <p className="rule-note" style={{ color: "var(--rose)" }}>{err}</p>}
+    </Card>
+  );
+}
+function CalendarScreen({ schedule, profile, googleAuth, onAddSchedule, onUpdateSchedule, onDeleteSchedule, deviceParent }) {
   const { token, status } = googleAuth;
+  const calendarId = profile.googleCalendarId || "primary";
+  const leadMin = profile.scheduleReminderLeadMin ?? 15;
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [googleEvents, setGoogleEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -2065,8 +2353,8 @@ function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule,
     if (!token) { setGoogleEvents([]); return; }
     const timeMin = new Date(weekStart);
     const timeMax = new Date(weekStart); timeMax.setDate(timeMax.getDate() + 7);
-    fetchGoogleEvents(token, timeMin.toISOString(), timeMax.toISOString()).then(setGoogleEvents).catch(() => setGoogleEvents([]));
-  }, [token, weekStart]);
+    fetchGoogleEvents(token, timeMin.toISOString(), timeMax.toISOString(), calendarId).then(setGoogleEvents).catch(() => setGoogleEvents([]));
+  }, [token, weekStart, calendarId]);
 
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(d.getDate() + i); return d; });
 
@@ -2080,7 +2368,7 @@ function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule,
   async function handleSync(item) {
     if (!token) return;
     try {
-      const ev = await pushScheduleToGoogle(token, item);
+      const ev = await pushScheduleToGoogle(token, item, calendarId, leadMin);
       onUpdateSchedule({ ...item, googleEventId: ev.id });
       alert("Synced to Google Calendar.");
     } catch (e) {
@@ -2111,6 +2399,8 @@ function CalendarScreen({ schedule, googleAuth, onAddSchedule, onUpdateSchedule,
         )}
         {status === "error" && <div className="item-title">Couldn't reach Google Calendar — check back shortly.</div>}
       </Card>
+
+      <PushReminderCard deviceParent={deviceParent} leadMin={leadMin} />
 
       <div className="week-nav">
         <IconBtn onClick={() => setWeekStart((d) => { const nd = new Date(d); nd.setDate(nd.getDate() - 7); return nd; })}>‹</IconBtn>
@@ -2189,8 +2479,8 @@ function UpNextCard({ data, token, setView }) {
     if (!token) { setGoogleToday([]); return; }
     const now = new Date();
     const end = new Date(); end.setHours(23, 59, 59, 999);
-    fetchGoogleEvents(token, now.toISOString(), end.toISOString()).then(setGoogleToday).catch(() => setGoogleToday([]));
-  }, [token]);
+    fetchGoogleEvents(token, now.toISOString(), end.toISOString(), profile.googleCalendarId).then(setGoogleToday).catch(() => setGoogleToday([]));
+  }, [token, profile.googleCalendarId]);
 
   const rows = [];
   const { lastFeedDt, lastWakeDt } = deriveStatus(data);
@@ -2366,7 +2656,7 @@ function BottomNav({ view, setView }) {
 }
 
 /* ---------- App ---------- */
-const ATTRIBUTED_KEYS = new Set(["nursing", "sleep", "diapers", "solids"]);
+const ATTRIBUTED_KEYS = new Set(["nursing", "sleep", "diapers", "solids", "pumping", "activities"]);
 function App() {
   const [data, setData] = useState(DEF);
   const [view, setView] = useState("today");
@@ -2454,12 +2744,10 @@ function App() {
   async function maybeAutoGuide(d) {
     if (guideRanRef.current) return;
     guideRanRef.current = true;
-    const key = localStorage.getItem("lf_api_key");
-    if (!key) return;
     const last = d.advisor && d.advisor.lastRun ? new Date(d.advisor.lastRun).getTime() : 0;
     if (Date.now() - last < 7 * 86400000) return;
     try {
-      const tips = await generateGuideTips(key, d);
+      const tips = await generateGuideTips(d);
       update({ advisor: { lastRun: new Date().toISOString(), ageAtRun: ageString(d.profile.dob), tips } });
       if ("Notification" in window && Notification.permission === "granted" && tips[0]) {
         new Notification("Little Foot — this week's guide", { body: tips[0].title });
@@ -2494,6 +2782,15 @@ function App() {
     const entry = { id: uid(), date: localDateStr(new Date(active.startedAt)), time: active.start, side: active.side, duration: durationMin, by: deviceParent || undefined };
     update((prev) => ({ ...prev, activeFeeding: null, nursing: [...prev.nursing, entry] }));
     showToast(`🍼 Feeding logged · ${durLabel(durationMin)} · ${active.side}`, () => deleteFrom("nursing")(entry.id));
+  };
+
+  const startPumping = (side) => update((prev) => ({ ...prev, activePumping: { side, start: nowTime(), startedAt: new Date().toISOString() } }));
+  const stopPumping = () => {
+    const active = data.activePumping;
+    if (!active) return null;
+    const durationMin = Math.max(1, Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000));
+    update((prev) => ({ ...prev, activePumping: null }));
+    return { date: localDateStr(new Date(active.startedAt)), time: active.start, side: active.side, duration: durationMin, by: deviceParent || undefined };
   };
 
   function exportBackup() {
@@ -2565,11 +2862,13 @@ function App() {
             onAddNursing={addTo("nursing")} onAddSolid={addTo("solids")}
             onStartSleep={startSleep} onStopSleep={stopSleep} onAddSleep={addTo("sleep")}
             onQuickDiaper={quickDiaper} onAddDiaper={addTo("diapers")}
+            onStartPumping={startPumping} onStopPumping={stopPumping} onAddPumping={addTo("pumping")}
+            onAddActivity={addTo("activities")}
           />
         )}
         {view === "history" && <HistoryScreen data={data} updateIn={updateIn} deleteFrom={delC} />}
         {view === "calendar" && (
-          <CalendarScreen schedule={data.schedule} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={delC("schedule")} />
+          <CalendarScreen schedule={data.schedule} profile={data.profile} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={delC("schedule")} deviceParent={deviceParent} />
         )}
         {view === "more" && <MoreScreen setView={setView} />}
         {view === "growth" && (
@@ -2607,6 +2906,9 @@ function App() {
             onAdd={addTo("vaccines")} onUpdate={updateIn("vaccines")} onDelete={delC("vaccines")} emptyText="No vaccines logged yet." />
         )}
         {view === "prebirth" && <PreBirthScreen data={data} update={update} />}
+        {view === "postpartum" && (
+          <PostpartumScreen data={data} onAdd={addTo("postpartum")} onUpdate={updateIn("postpartum")} onDelete={delC("postpartum")} />
+        )}
         {view === "ask" && <GuideScreen data={data} update={update} onAddLearning={addTo("learnings")} onDeleteLearning={delC("learnings")} />}
         {view === "profile" && (
           <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })}
