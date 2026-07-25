@@ -2344,7 +2344,7 @@ function CalendarScreen({ schedule, profile, googleAuth, onAddSchedule, onUpdate
   const { token, status } = googleAuth;
   const calendarId = profile.googleCalendarId || "primary";
   const leadMin = profile.scheduleReminderLeadMin ?? 15;
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [weekStart, setWeekStart] = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
   const [googleEvents, setGoogleEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
