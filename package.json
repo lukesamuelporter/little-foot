@@ -1,0 +1,9 @@
+{
+  "name": "little-foot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Little Foot baby tracker — static site + Vercel serverless functions",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
