@@ -2474,12 +2474,12 @@ function MetricCard({ label, value, unit, trend, spark, color, onClick }) {
 /* ---------- Up Next: routines, next feed estimate, nap window, and today's Google events ---------- */
 function UpNextCard({ data, token, setView }) {
   const { profile, schedule } = data;
-  const [googleToday, setGoogleToday] = useState([]);
+  const [googleUpcoming, setGoogleUpcoming] = useState([]);
   useEffect(() => {
-    if (!token) { setGoogleToday([]); return; }
+    if (!token) { setGoogleUpcoming([]); return; }
     const now = new Date();
-    const end = new Date(); end.setHours(23, 59, 59, 999);
-    fetchGoogleEvents(token, now.toISOString(), end.toISOString(), profile.googleCalendarId).then(setGoogleToday).catch(() => setGoogleToday([]));
+    const end = new Date(now.getTime() + 48 * 3600000);
+    fetchGoogleEvents(token, now.toISOString(), end.toISOString(), profile.googleCalendarId).then(setGoogleUpcoming).catch(() => setGoogleUpcoming([]));
   }, [token, profile.googleCalendarId]);
 
   const rows = [];
@@ -2504,7 +2504,7 @@ function UpNextCard({ data, token, setView }) {
   upcomingSchedule(schedule, 3).forEach(({ dt, item }) => {
     rows.push({ dt, icon: typeEmoji(item.type), label: item.label || (item.type === "sleep" ? "Nap" : "Feeding"), right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", onClick: () => setView("calendar") });
   });
-  googleToday.slice(0, 3).forEach((ev) => {
+  googleUpcoming.slice(0, 3).forEach((ev) => {
     const dt = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
     if (!dt) return;
     rows.push({ dt, icon: "🔗", label: ev.summary || "(untitled)", right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", href: ev.htmlLink });
