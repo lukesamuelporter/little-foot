@@ -28,6 +28,21 @@
     --moss:#5F7A5A; --plum:#8B7098; --rose:#C0584B; --sky:#6E93A8;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  /* Since the native mobile tap-highlight is disabled above, give every tappable element its
+     own quick, deliberate press feedback instead — otherwise taps feel like they did nothing. */
+  .btn,.icon-btn,.chip,.subtab,.side-btn,.grid-tile,.nav-item,.status-chip,.cal-item,.group-header,
+  .mic-btn,.card-clickable,.metric-card,.refresh-btn,.link-btn,.photo-tile,.hint-banner.sleeping,
+  .checkbox,.chip-row .chip{
+    transition:transform .09s ease,opacity .09s ease;
+    -webkit-user-select:none;user-select:none;
+  }
+  .btn:active,.icon-btn:active,.chip:active,.subtab:active,.side-btn:active,.grid-tile:active,
+  .nav-item:active,.status-chip:active,.cal-item:active,.group-header:active,.mic-btn:active,
+  .card-clickable:active,.metric-card:active,.refresh-btn:active,.link-btn:active,.photo-tile:active,
+  .hint-banner.sleeping:active{
+    transform:scale(0.95);
+    opacity:.72;
+  }
   html,body{margin:0;padding:0;background:var(--cream);}
   body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);}
   input,select,textarea,button{font-family:inherit;}
@@ -120,6 +135,9 @@
   .more-group-title{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;}
 
   .journal-photo{width:100%;border-radius:10px;margin-top:9px;display:block;}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .photo-tile{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--line);}
+  .photo-tile img{width:100%;height:100%;object-fit:cover;display:block;}
 
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--paper);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10;}
   .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 8px;border:none;background:none;color:var(--ink-soft);font-size:11px;font-weight:700;cursor:pointer;}
@@ -166,6 +184,11 @@
   .chip{flex-shrink:0;border:1px solid var(--line);background:var(--paper);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;}
   .chip.active{background:var(--marigold);border-color:var(--marigold);color:#fff;}
   .link-btn{border:none;background:none;color:var(--marigold-deep);font-weight:700;font-size:12px;cursor:pointer;padding:2px 0;text-align:left;}
+  .mic-btn{border:1px solid var(--line);background:var(--paper);border-radius:50%;width:34px;height:34px;flex-shrink:0;font-size:15px;cursor:pointer;color:var(--ink);}
+  .mic-btn.listening{background:var(--rose);border-color:var(--rose);color:#fff;animation:pulse 1.1s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.55;}100%{opacity:1;}}
+  .field-with-mic{display:flex;gap:8px;align-items:flex-start;}
+  .field-with-mic textarea,.field-with-mic input{flex:1;}
 
   .group-block{margin-bottom:8px;}
   .group-header{width:100%;display:flex;justify-content:space-between;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;}
@@ -299,6 +322,7 @@ const DEF = {
   activeFeeding: null,
   activePumping: null,
   milestones: [],
+  adventures: [],
   words: [],
   journal: [],
   diapers: [],
@@ -309,6 +333,7 @@ const DEF = {
   prebirth: { contractions: [], checklist: [] },
   schedule: [],
   learnings: [],
+  handoffNote: { text: "", by: "", updatedAt: null },
   advisor: { lastRun: null, ageAtRun: "", tips: [] },
 };
 
@@ -659,7 +684,40 @@ function IconBtn({ children, onClick, variant = "" }) {
   );
 }
 function Card({ children, onClick }) {
-  return <div className="card" onClick={onClick}>{children}</div>;
+  return <div className={onClick ? "card card-clickable" : "card"} onClick={onClick}>{children}</div>;
+}
+function VoiceButton({ onResult }) {
+  const [listening, setListening] = useState(false);
+  const recogRef = useRef(null);
+  const supported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  function start() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recog = new SR();
+    recog.lang = "en-US";
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+    recog.onresult = (e) => {
+      const text = Array.from(e.results).map((r) => r[0].transcript).join(" ");
+      onResult(text);
+    };
+    recog.onend = () => setListening(false);
+    recog.onerror = () => setListening(false);
+    recogRef.current = recog;
+    try { recog.start(); setListening(true); } catch (e) { setListening(false); }
+  }
+  function stop() {
+    if (recogRef.current) recogRef.current.stop();
+    setListening(false);
+  }
+
+  if (!supported) return null;
+
+  return (
+    <button type="button" className={listening ? "mic-btn listening" : "mic-btn"} onClick={listening ? stop : start} title="Tap to dictate">
+      {listening ? "⏺" : "🎤"}
+    </button>
+  );
 }
 function Badge({ children, tone = "neutral" }) {
   return <span className={`badge badge-${tone}`}>{children}</span>;
@@ -818,7 +876,7 @@ function EntryForm({ fields, initial, title, onCancel, onSave, onDelete }) {
 }
 
 /* ---------- Generic list section (config-driven) ---------- */
-function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle, renderSub, tone, onAdd, onUpdate, onDelete, emptyText, extraAction }) {
+function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle, renderSub, tone, onAdd, onUpdate, onDelete, emptyText, extraAction, extraContent }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -848,6 +906,7 @@ function ListSection({ title, icon, items, fields, sortKey = "date", renderTitle
         <h2>{icon} {title}</h2>
         <Btn onClick={() => setShowForm(true)}>+ Add</Btn>
       </div>
+      {extraContent}
       {items.length === 0 && <EmptyState text={emptyText} />}
       {items.length > 0 && <div className="list">{sorted.map(renderCard)}</div>}
       {(showForm || editing) && (
@@ -913,6 +972,65 @@ const MILESTONE_FIELDS = [
   { key: "title", label: "Milestone", type: "text", required: true },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
+const ADVENTURE_FIELDS = [
+  { key: "date", label: "Date", type: "date", required: true },
+  { key: "category", label: "Category", type: "select", options: ["Outdoors", "Travel", "Food", "Social", "Milestone trip", "Other"] },
+  { key: "title", label: "Adventure", type: "text", required: true },
+  { key: "location", label: "Location", type: "text" },
+  { key: "notes", label: "Notes", type: "textarea" },
+];
+
+/* Common milestones by age range — general reference only, not a screening tool. Each baby's
+   timeline varies; these are just gentle nudges of what to watch for, not a diagnostic checklist. */
+const MILESTONE_SUGGESTIONS = [
+  { min: 0, max: 2, category: "Motor", title: "Lifts head briefly during tummy time" },
+  { min: 0, max: 2, category: "Social", title: "First real smile" },
+  { min: 0, max: 2, category: "Communication", title: "Coos and makes vowel sounds" },
+  { min: 0, max: 2, category: "Cognitive", title: "Follows a face or object with eyes" },
+  { min: 2, max: 4, category: "Motor", title: "Pushes up on arms during tummy time" },
+  { min: 2, max: 4, category: "Social", title: "Laughs out loud" },
+  { min: 2, max: 4, category: "Communication", title: "Turns toward voices or sounds" },
+  { min: 2, max: 4, category: "Cognitive", title: "Watches own hands with interest" },
+  { min: 4, max: 6, category: "Motor", title: "Rolls from tummy to back" },
+  { min: 4, max: 6, category: "Social", title: "Enjoys simple social games" },
+  { min: 4, max: 6, category: "Communication", title: "Babbles with consonant sounds" },
+  { min: 4, max: 6, category: "Cognitive", title: "Reaches for and grabs toys" },
+  { min: 6, max: 9, category: "Motor", title: "Sits without support" },
+  { min: 6, max: 9, category: "Social", title: "Recognizes familiar faces" },
+  { min: 6, max: 9, category: "Communication", title: "Responds to own name" },
+  { min: 6, max: 9, category: "Cognitive", title: "Passes an object hand to hand" },
+  { min: 9, max: 12, category: "Motor", title: "Pulls to stand" },
+  { min: 9, max: 12, category: "Social", title: "Plays peekaboo" },
+  { min: 9, max: 12, category: "Communication", title: "Says \"mama\" or \"dada\" (or similar)" },
+  { min: 9, max: 12, category: "Cognitive", title: "Looks for a hidden object" },
+  { min: 12, max: 18, category: "Motor", title: "Takes first independent steps" },
+  { min: 12, max: 18, category: "Social", title: "Points to show interest in something" },
+  { min: 12, max: 18, category: "Communication", title: "Says a few clear words" },
+  { min: 12, max: 18, category: "Cognitive", title: "Imitates a simple action" },
+];
+function suggestedMilestones(ageMonths, logged) {
+  if (ageMonths == null) return [];
+  const done = new Set(logged.map((m) => (m.title || "").toLowerCase().trim()));
+  return MILESTONE_SUGGESTIONS.filter((s) => ageMonths >= s.min && ageMonths < s.max + 1 && !done.has(s.title.toLowerCase()));
+}
+function MilestoneSuggestions({ data, onQuickAdd }) {
+  const ageMonths = monthsBetween(data.profile.dob, todayStr());
+  const suggestions = useMemo(() => suggestedMilestones(ageMonths, data.milestones), [ageMonths, data.milestones]);
+  if (!data.profile.dob || suggestions.length === 0) return null;
+
+  return (
+    <Card>
+      <div className="stat-label">✨ Suggested for {ageString(data.profile.dob)}</div>
+      <p className="rule-note" style={{ margin: "4px 0 9px" }}>General reference, not a screening tool — every baby's timeline varies. Tap to log one if it fits.</p>
+      {suggestions.slice(0, 4).map((s) => (
+        <div key={s.title} className="row" style={{ marginBottom: 6 }}>
+          <div className="grow item-sub">{s.title}</div>
+          <Btn variant="ghost" onClick={() => onQuickAdd({ id: uid(), date: todayStr(), category: s.category, title: s.title })}>+ Log</Btn>
+        </div>
+      ))}
+    </Card>
+  );
+}
 const WORDS_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
   { key: "word", label: "Word", type: "text", required: true },
@@ -1272,9 +1390,16 @@ const HISTORY_KINDS = {
   pump: { key: "pumping", fields: PUMPING_FIELDS, label: "pumping session" },
   activity: { key: "activities", fields: ACTIVITY_FIELDS, label: "activity" },
 };
-function HistoryScreen({ data, updateIn, deleteFrom }) {
+function HistoryScreen({ data, updateIn, deleteFrom, pendingEdit, onConsumePendingEdit }) {
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(null); // {kind, item}
+
+  useEffect(() => {
+    if (pendingEdit) {
+      setEditing(pendingEdit);
+      if (onConsumePendingEdit) onConsumePendingEdit();
+    }
+  }, [pendingEdit]);
 
   const merged = useMemo(() => {
     const arr = [];
@@ -1711,6 +1836,24 @@ function ProfileScreen({ profile, onSave, deviceParent, setDeviceParent, onExpor
           <input type="file" accept="application/json,.json" onChange={handleImportFile} />
         </label>
       </div>
+
+      <div className="card">
+        <div className="field-group-label" style={{ margin: "0 0 8px" }}>Family update</div>
+        <p className="rule-note" style={{ margin: "0 0 10px" }}>A read-only page with the latest photo, milestones, and today's stats — share it with grandparents so they always have something current, without you having to send updates yourself.</p>
+        <div className="quick-actions">
+          <Btn variant="ghost" onClick={() => window.open("/family.html", "_blank")}>👀 Preview</Btn>
+          <Btn
+            onClick={() => {
+              const url = window.location.origin + "/family.html";
+              if (navigator.share) navigator.share({ title: "Family Update", url }).catch(() => {});
+              else if (navigator.clipboard) { navigator.clipboard.writeText(url); alert("Link copied!"); }
+              else alert(url);
+            }}
+          >
+            🔗 Share link
+          </Btn>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1728,8 +1871,10 @@ const MORE_GROUPS = [
   ]},
   { label: "Memories", items: [
     { key: "milestones", icon: "⭐", label: "Milestones" },
+    { key: "adventures", icon: "🏔️", label: "Adventures" },
     { key: "words", icon: "💬", label: "First words" },
     { key: "journal", icon: "📓", label: "Journal" },
+    { key: "photos", icon: "🖼️", label: "Photo timeline" },
   ]},
   { label: "Planning", items: [
     { key: "calendar", icon: "🗓️", label: "Calendar & routines" },
@@ -1801,8 +1946,9 @@ function JournalScreen({ items, profile, onAdd, onDelete }) {
             <div className="row">
               <div className="grow">
                 <div className="item-title">{item.author === "Other" && item.otherName ? item.otherName : (item.author || "—")}</div>
-                <div className="item-sub">{fmtDate(item.date)}</div>
+                <div className="item-sub">{fmtDate(item.date)}{item.auto ? " · auto-added" : ""}</div>
               </div>
+              {item.auto && <Badge tone="neutral">auto</Badge>}
               <IconBtn variant="danger" onClick={() => onDelete(item.id)}>✕</IconBtn>
             </div>
             {item.photo && <img src={item.photo} className="journal-photo" alt="" />}
@@ -1827,7 +1973,13 @@ function JournalScreen({ items, profile, onAdd, onDelete }) {
             {vals.author === "Other" && (
               <label className="field"><span>Name</span><input value={vals.otherName} onChange={(e) => setVals((s) => ({ ...s, otherName: e.target.value }))} /></label>
             )}
-            <label className="field"><span>Entry</span><textarea rows={4} value={vals.text} onChange={(e) => setVals((s) => ({ ...s, text: e.target.value }))} /></label>
+            <label className="field">
+              <span>Entry</span>
+              <div className="field-with-mic">
+                <textarea rows={4} value={vals.text} onChange={(e) => setVals((s) => ({ ...s, text: e.target.value }))} />
+                <VoiceButton onResult={(t) => setVals((s) => ({ ...s, text: s.text ? `${s.text} ${t}` : t }))} />
+              </div>
+            </label>
             <label className="field"><span>Photo (optional)</span><input type="file" accept="image/*" onChange={handlePhoto} /></label>
             {vals.photo && <img src={vals.photo} className="journal-photo" alt="" />}
           </div>
@@ -1835,6 +1987,37 @@ function JournalScreen({ items, profile, onAdd, onDelete }) {
             <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
             <Btn onClick={() => { if (!vals.text) return alert("Please write something first."); onAdd({ ...vals, id: uid() }); setShowForm(false); }}>Save</Btn>
           </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Photo timeline: grid of every journal photo, tap to open ---------- */
+function PhotosScreen({ journal, setView }) {
+  const withPhotos = useMemo(
+    () => [...journal].filter((j) => j.photo).sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))),
+    [journal]
+  );
+  const [viewing, setViewing] = useState(null);
+
+  return (
+    <div className="screen">
+      <div className="screen-head"><h2>🖼️ Photo timeline</h2></div>
+      {withPhotos.length === 0 && <EmptyState text="No photos yet — add one from the Journal and it'll show up here." />}
+      <div className="photo-grid">
+        {withPhotos.map((j) => (
+          <div key={j.id} className="photo-tile" onClick={() => setViewing(j)}>
+            <img src={j.photo} alt="" />
+          </div>
+        ))}
+      </div>
+      {viewing && (
+        <Sheet onClose={() => setViewing(null)}>
+          <div className="sheet-head"><h3>{fmtDate(viewing.date)}</h3><IconBtn onClick={() => setViewing(null)}>✕</IconBtn></div>
+          <img src={viewing.photo} className="journal-photo" alt="" />
+          <div className="item-sub" style={{ marginTop: 8 }}>{viewing.author === "Other" && viewing.otherName ? viewing.otherName : viewing.author}</div>
+          {viewing.text && <div className="item-notes">{viewing.text}</div>}
         </Sheet>
       )}
     </div>
@@ -2210,7 +2393,10 @@ function GuideScreen({ data, update, onAddLearning, onDeleteLearning }) {
       <Card>
         <div className="log-card-head"><div className="item-title">📌 What worked / what didn't</div></div>
         <p className="rule-note" style={{ margin: "0 0 9px" }}>Jot down wins and misses — the guide and chat read these, so you never repeat a failed experiment.</p>
-        <input className="grow" style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 11px", background: "var(--cream)", fontSize: 15, marginBottom: 8 }} placeholder="e.g. white noise + football hold at bedtime" value={learnText} onChange={(e) => setLearnText(e.target.value)} />
+        <div className="field-with-mic" style={{ marginBottom: 8 }}>
+          <input className="grow" style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 11px", background: "var(--cream)", fontSize: 15 }} placeholder="e.g. white noise + football hold at bedtime" value={learnText} onChange={(e) => setLearnText(e.target.value)} />
+          <VoiceButton onResult={(t) => setLearnText((prev) => (prev ? `${prev} ${t}` : t))} />
+        </div>
         <div className="quick-actions">
           <Btn variant="ghost" onClick={() => addLearning("Worked")}>👍 Worked</Btn>
           <Btn variant="ghost" onClick={() => addLearning("Didn't work")}>👎 Didn't work</Btn>
@@ -2535,7 +2721,141 @@ function UpNextCard({ data, token, setView }) {
 }
 
 /* ---------- Today dashboard ---------- */
-function TodayScreen({ data, token, setView }) {
+/* ---------- Handoff note: one shared note either parent can update ---------- */
+function HandoffNoteCard({ note, deviceParent, onSave }) {
+  const [text, setText] = useState(note.text || "");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { setText(note.text || ""); }, [note.text]);
+
+  function save() {
+    onSave({ text: text.trim(), by: deviceParent || note.by || "", updatedAt: new Date().toISOString() });
+    setEditing(false);
+  }
+
+  return (
+    <Card>
+      <div className="log-card-head">
+        <div className="item-title">📝 Handoff note</div>
+        {!editing && <button className="link-btn" onClick={() => setEditing(true)}>{note.text ? "Edit" : "+ Add"}</button>}
+      </div>
+      {editing ? (
+        <>
+          <div className="field-with-mic">
+            <textarea
+              rows={3} value={text} onChange={(e) => setText(e.target.value)}
+              placeholder="Anything the next parent on duty should know…"
+              style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "10px 11px", background: "var(--cream)", fontSize: 15, width: "100%" }}
+            />
+            <VoiceButton onResult={(t) => setText((prev) => (prev ? prev + " " : "") + t)} />
+          </div>
+          <div className="quick-actions" style={{ marginTop: 8 }}>
+            <Btn variant="ghost" onClick={() => { setText(note.text || ""); setEditing(false); }}>Cancel</Btn>
+            <Btn onClick={save}>Save</Btn>
+          </div>
+        </>
+      ) : note.text ? (
+        <>
+          <div className="item-sub" style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.4 }}>{note.text}</div>
+          <p className="rule-note" style={{ margin: "8px 0 0" }}>{note.by ? `— ${note.by}` : ""}{note.updatedAt ? ` · ${agoLabel(new Date(note.updatedAt))}` : ""}</p>
+        </>
+      ) : (
+        <div className="item-sub">Nothing to hand off right now.</div>
+      )}
+    </Card>
+  );
+}
+
+/* ---------- Overnight recap: what happened roughly 8pm–7am, shown during the morning window ---------- */
+function overnightStats(data) {
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+  const windowStart = new Date(midnight.getTime() - 4 * 3600000); // yesterday 8pm
+  const windowEnd = new Date(midnight.getTime() + 7 * 3600000); // today 7am
+  const inWindow = (dt) => dt && dt >= windowStart && dt <= windowEnd;
+
+  const feeds = data.nursing.filter((n) => inWindow(dtFrom(n.date, n.time)));
+  const dias = data.diapers.filter((d) => inWindow(dtFrom(d.date, d.time)));
+  const sleeps = data.sleep.filter((s) => inWindow(dtFrom(s.date, s.start)));
+  const sleepMin = sleeps.reduce((sum, s) => sum + (minutesBetween(s.start, s.end) || 0), 0);
+  const longest = sleeps.length ? Math.max(...sleeps.map((s) => minutesBetween(s.start, s.end) || 0)) : 0;
+  const wet = dias.filter((d) => d.type === "Wet" || d.type === "Both").length;
+  const dirty = dias.filter((d) => d.type === "Dirty" || d.type === "Both").length;
+  const byCounts = {};
+  [...feeds, ...dias, ...sleeps].forEach((e) => { if (e.by) byCounts[e.by] = (byCounts[e.by] || 0) + 1; });
+  const lastFeed = [...feeds].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
+
+  return { feeds: feeds.length, sleepMin, longest, wet, dirty, byCounts, lastFeed, hasData: feeds.length > 0 || dias.length > 0 || sleeps.length > 0 };
+}
+function OvernightRecapCard({ data }) {
+  const hour = new Date().getHours();
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem("lf_overnight_dismissed") === todayStr());
+  if (hour < 5 || hour >= 11 || dismissed) return null;
+  const stats = overnightStats(data);
+  if (!stats.hasData) return null;
+
+  function dismiss() {
+    localStorage.setItem("lf_overnight_dismissed", todayStr());
+    setDismissed(true);
+  }
+  const byText = Object.entries(stats.byCounts).map(([p, c]) => `${p} logged ${c}`).join(" · ");
+
+  return (
+    <Card>
+      <div className="log-card-head">
+        <div className="item-title">🌙 Overnight recap</div>
+        <IconBtn onClick={dismiss}>✕</IconBtn>
+      </div>
+      <div className="item-sub" style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.5 }}>
+        Since 8pm: <strong>{stats.feeds} feed{stats.feeds === 1 ? "" : "s"}</strong>{stats.lastFeed ? ` (last at ${fmtTime(stats.lastFeed.time)})` : ""}, <strong>{durLabel(stats.sleepMin) || "0m"} sleep</strong>{stats.longest ? ` (longest stretch ${durLabel(stats.longest)})` : ""}, <strong>{stats.wet}💧 {stats.dirty}💩</strong>.
+      </div>
+      {byText && <p className="rule-note" style={{ margin: "6px 0 0" }}>{byText}</p>}
+    </Card>
+  );
+}
+
+/* ---------- Soothing toolkit: quick access to what's worked recently ---------- */
+function SoothingToolkitCard({ learnings, setView }) {
+  const worked = [...learnings].filter((l) => l.verdict === "Worked").sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 4);
+  if (worked.length === 0) return null;
+  return (
+    <Card onClick={() => setView("ask")}>
+      <div className="stat-label">🤲 What's worked</div>
+      <div style={{ marginTop: 6 }}>
+        {worked.map((l) => (
+          <div key={l.id} className="item-sub" style={{ marginTop: 3 }}>👍 {l.text}</div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- On this day: a random past memory, stable for the whole day ---------- */
+function pickOnThisDay(data) {
+  const cutoff = localDateStr(new Date(Date.now() - 10 * 86400000));
+  const candidates = [
+    ...data.journal.filter((j) => j.date && j.date < cutoff && j.text).map((j) => ({ kind: "journal", date: j.date, text: j.text, photo: j.photo })),
+    ...data.milestones.filter((m) => m.date && m.date < cutoff).map((m) => ({ kind: "milestone", date: m.date, text: `⭐ ${m.title}` })),
+    ...(data.adventures || []).filter((a) => a.date && a.date < cutoff).map((a) => ({ kind: "adventure", date: a.date, text: `🏔️ ${a.title}${a.location ? ` — ${a.location}` : ""}` })),
+  ];
+  if (candidates.length === 0) return null;
+  const seed = parseInt(todayStr().split("-").join(""), 10);
+  return candidates[seed % candidates.length];
+}
+function OnThisDayCard({ data, setView }) {
+  const pick = useMemo(() => pickOnThisDay(data), [data.journal, data.milestones, data.adventures]);
+  if (!pick) return null;
+  const daysAgo = Math.round((new Date(todayStr() + "T00:00:00") - new Date(pick.date + "T00:00:00")) / 86400000);
+  const agoText = daysAgo < 14 ? `${daysAgo} days ago` : daysAgo < 60 ? `${Math.round(daysAgo / 7)} weeks ago` : `${Math.round(daysAgo / 30.44)} months ago`;
+  const dest = pick.kind === "journal" ? "journal" : pick.kind === "milestone" ? "milestones" : "adventures";
+  return (
+    <Card onClick={() => setView(dest)}>
+      <div className="stat-label">📸 Way back when — {agoText}</div>
+      {pick.photo && <img src={pick.photo} className="journal-photo" alt="" style={{ marginTop: 8 }} />}
+      <div className="item-sub" style={{ marginTop: 6 }}>{pick.text}</div>
+    </Card>
+  );
+}
+
+function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
   const { profile, nursing, diapers, journal, activeSleep, sleep } = data;
   const lastJournal = [...journal].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
 
@@ -2586,6 +2906,10 @@ function TodayScreen({ data, token, setView }) {
         </div>
       </div>
 
+      <HandoffNoteCard note={data.handoffNote} deviceParent={deviceParent} onSave={onSaveHandoff} />
+
+      <OvernightRecapCard data={data} />
+
       {activeSleep && (
         <div className="hint-banner sleeping" onClick={() => setView("log")}>
           😴 Currently asleep ({activeSleep.type}) — tap to wake up
@@ -2609,6 +2933,10 @@ function TodayScreen({ data, token, setView }) {
           <div className="item-sub">{data.advisor.tips[0].body}</div>
         </Card>
       )}
+
+      <SoothingToolkitCard learnings={data.learnings} setView={setView} />
+
+      <OnThisDayCard data={data} setView={setView} />
 
       {hasYesterday && (
         <Card onClick={() => setView("history")}>
@@ -2661,7 +2989,8 @@ function App() {
   const [data, setData] = useState(DEF);
   const [view, setView] = useState("today");
   const [syncing, setSyncing] = useState(false);
-  const [toast, setToast] = useState(null); // { msg, undo }
+  const [toast, setToast] = useState(null); // { msg, undo, note }
+  const [pendingEdit, setPendingEdit] = useState(null); // { kind, item } — opened via toast "+ Note"
   const saveTimer = useRef(null);
   const toastTimer = useRef(null);
   const googleAuth = useGoogleAuth();
@@ -2676,9 +3005,9 @@ function App() {
     return () => clearInterval(t);
   }, []);
 
-  function showToast(msg, undo) {
+  function showToast(msg, undo, note) {
     clearTimeout(toastTimer.current);
-    setToast({ msg, undo });
+    setToast({ msg, undo, note });
     toastTimer.current = setTimeout(() => setToast(null), 5000);
   }
 
@@ -2740,6 +3069,15 @@ function App() {
   const deleteFrom = (key) => (id) => update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) }));
   const delC = (key) => withConfirm(deleteFrom(key)); // confirmed deletes for UI buttons (toast Undo stays instant)
 
+  // Milestones and adventures also drop a matching entry into the Journal automatically,
+  // so the scrapbook/photo-timeline stays the single place memories accumulate.
+  const addWithJournal = (key, textFn) => (item) => {
+    const journalEntry = { id: uid(), date: item.date || todayStr(), author: deviceParent || "", text: textFn(item), photo: null, auto: true };
+    update((prev) => ({ ...prev, [key]: [...prev[key], item], journal: [...prev.journal, journalEntry] }));
+  };
+  const addMilestone = addWithJournal("milestones", (i) => `⭐ Milestone: ${i.title}${i.category ? ` (${i.category})` : ""}${i.notes ? ` — ${i.notes}` : ""}`);
+  const addAdventure = addWithJournal("adventures", (i) => `🏔️ Adventure: ${i.title}${i.location ? ` — ${i.location}` : ""}${i.notes ? ` (${i.notes})` : ""}`);
+
   const guideRanRef = useRef(false);
   async function maybeAutoGuide(d) {
     if (guideRanRef.current) return;
@@ -2758,7 +3096,7 @@ function App() {
   const quickDiaper = (type) => {
     const item = { id: uid(), date: todayStr(), time: nowTime(), type };
     addTo("diapers")(item);
-    showToast(`${DIAPER_EMOJI[type]} ${type} diaper logged`, () => deleteFrom("diapers")(item.id));
+    showToast(`${DIAPER_EMOJI[type]} ${type} diaper logged`, () => deleteFrom("diapers")(item.id), { kind: "diaper", item });
   };
 
   const startSleep = (type, minutesAgo = 0) => update((prev) => {
@@ -2771,7 +3109,7 @@ function App() {
     const mins = Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000);
     const entry = { id: uid(), type: active.type, date: localDateStr(new Date(active.startedAt)), start: active.start, end: nowTime(), by: deviceParent || undefined };
     update((prev) => ({ ...prev, activeSleep: null, sleep: [...prev.sleep, entry] }));
-    showToast(`😴 Sleep logged · ${durLabel(mins)}`, () => deleteFrom("sleep")(entry.id));
+    showToast(`😴 Sleep logged · ${durLabel(mins)}`, () => deleteFrom("sleep")(entry.id), { kind: "sleep", item: entry });
   };
 
   const startFeeding = (side) => update((prev) => ({ ...prev, activeFeeding: { side, start: nowTime(), startedAt: new Date().toISOString() } }));
@@ -2781,7 +3119,7 @@ function App() {
     const durationMin = Math.max(1, Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000));
     const entry = { id: uid(), date: localDateStr(new Date(active.startedAt)), time: active.start, side: active.side, duration: durationMin, by: deviceParent || undefined };
     update((prev) => ({ ...prev, activeFeeding: null, nursing: [...prev.nursing, entry] }));
-    showToast(`🍼 Feeding logged · ${durLabel(durationMin)} · ${active.side}`, () => deleteFrom("nursing")(entry.id));
+    showToast(`🍼 Feeding logged · ${durLabel(durationMin)} · ${active.side}`, () => deleteFrom("nursing")(entry.id), { kind: "feed", item: entry });
   };
 
   const startPumping = (side) => update((prev) => ({ ...prev, activePumping: { side, start: nowTime(), startedAt: new Date().toISOString() } }));
@@ -2854,7 +3192,7 @@ function App() {
       )}
 
       <main className="app-main">
-        {view === "today" && <TodayScreen data={data} token={googleAuth.token} setView={setView} />}
+        {view === "today" && <TodayScreen data={data} token={googleAuth.token} setView={setView} deviceParent={deviceParent} onSaveHandoff={(note) => update({ handoffNote: note })} />}
         {view === "log" && (
           <LogScreen
             data={data}
@@ -2866,7 +3204,9 @@ function App() {
             onAddActivity={addTo("activities")}
           />
         )}
-        {view === "history" && <HistoryScreen data={data} updateIn={updateIn} deleteFrom={delC} />}
+        {view === "history" && (
+          <HistoryScreen data={data} updateIn={updateIn} deleteFrom={delC} pendingEdit={pendingEdit} onConsumePendingEdit={() => setPendingEdit(null)} />
+        )}
         {view === "calendar" && (
           <CalendarScreen schedule={data.schedule} profile={data.profile} googleAuth={googleAuth} onAddSchedule={addTo("schedule")} onUpdateSchedule={updateIn("schedule")} onDeleteSchedule={delC("schedule")} deviceParent={deviceParent} />
         )}
@@ -2883,8 +3223,15 @@ function App() {
         {view === "milestones" && (
           <ListSection title="Milestones" icon="⭐" items={data.milestones} fields={MILESTONE_FIELDS}
             renderTitle={(i) => i.title} renderSub={(i) => `${i.category || ""} · ${fmtDate(i.date)}`}
-            onAdd={addTo("milestones")} onUpdate={updateIn("milestones")} onDelete={delC("milestones")} emptyText="No milestones logged yet." />
+            extraContent={<MilestoneSuggestions data={data} onQuickAdd={addMilestone} />}
+            onAdd={addMilestone} onUpdate={updateIn("milestones")} onDelete={delC("milestones")} emptyText="No milestones logged yet." />
         )}
+        {view === "adventures" && (
+          <ListSection title="Adventures" icon="🏔️" items={data.adventures} fields={ADVENTURE_FIELDS}
+            renderTitle={(i) => i.title} renderSub={(i) => [i.category, i.location, fmtDate(i.date)].filter(Boolean).join(" · ")}
+            onAdd={addAdventure} onUpdate={updateIn("adventures")} onDelete={delC("adventures")} emptyText="No adventures logged yet." />
+        )}
+        {view === "photos" && <PhotosScreen journal={data.journal} setView={setView} />}
         {view === "words" && (
           <ListSection title="First words" icon="💬" items={data.words} fields={WORDS_FIELDS}
             renderTitle={(i) => `"${i.word}"`} renderSub={(i) => fmtDate(i.date)}
@@ -2920,6 +3267,7 @@ function App() {
       {toast && (
         <div className="toast">
           <span>{toast.msg}</span>
+          {toast.note && <button onClick={() => { setPendingEdit(toast.note); setView("history"); setToast(null); }}>+ Note</button>}
           {toast.undo && <button onClick={() => { toast.undo(); setToast(null); }}>Undo</button>}
         </div>
       )}
