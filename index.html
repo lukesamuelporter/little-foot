@@ -2426,7 +2426,7 @@ function CalendarScreen({ schedule, profile, googleAuth, onAddSchedule, onUpdate
             ))}
             {dayEvents.map((ev) => (
               <a key={ev.id} className="cal-item google" href={ev.htmlLink} target="_blank" rel="noreferrer">
-                <span>🔗</span><span className="cal-item-label">{ev.summary || "(untitled)"}</span>
+                <span>📅</span><span className="cal-item-label">{ev.summary || "(untitled)"}</span>
                 <span className="cal-item-time">{ev.start?.dateTime ? fmtTime(ev.start.dateTime.slice(11, 16)) : "All day"}</span>
               </a>
             ))}
@@ -2507,7 +2507,7 @@ function UpNextCard({ data, token, setView }) {
   googleUpcoming.slice(0, 3).forEach((ev) => {
     const dt = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
     if (!dt) return;
-    rows.push({ dt, icon: "🔗", label: ev.summary || "(untitled)", right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", href: ev.htmlLink });
+    rows.push({ dt, icon: "📅", label: ev.summary || "(untitled)", right: `${fmtClock(dt)} · ${inLabel(dt)}`, tone: "", href: ev.htmlLink });
   });
   rows.sort((a, b) => a.dt - b.dt);
   const shown = rows.slice(0, 5);
