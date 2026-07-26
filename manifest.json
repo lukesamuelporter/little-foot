@@ -1,0 +1,15 @@
+{
+  "name": "Little Foot",
+  "short_name": "Little Foot",
+  "description": "A shared baby tracker for feeding, sleep, diapers, growth, and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF6EC",
+  "theme_color": "#5DAAD6",
+  "icons": [
+    { "src": "chickemoji-64.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "chickemoji-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "chickemoji-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "chickemoji-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
