@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Family Update — Little Foot</title>
+<meta name="description" content="The latest update — photos, milestones, and how today's going." />
+<meta property="og:title" content="Family Update" />
+<meta property="og:description" content="The latest photos, milestones, and how today's going." />
+<meta property="og:image" content="chickemoji-512.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="chickemoji-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --cream:#FBF6EC; --paper:#FFFFFF; --ink:#2C2620; --ink-soft:#7A7167;
+    --line:#ECE2D0; --marigold:#DE9138; --marigold-deep:#B96F1F; --moss:#5F7A5A; --sky:#6E93A8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--cream);}
+  body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;padding:22px 18px 40px;}
+  .header{text-align:center;margin-bottom:18px;}
+  .header .emoji{font-size:38px;}
+  .header h1{font-family:'Fraunces',serif;font-size:24px;margin:8px 0 2px;font-weight:600;}
+  .header p{margin:0;color:var(--ink-soft);font-size:14px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .card h2{font-family:'Fraunces',serif;font-size:15px;font-weight:600;margin:0 0 10px;color:var(--marigold-deep);}
+  .photo{width:100%;border-radius:12px;display:block;margin-bottom:10px;}
+  .photo-caption{font-size:14px;line-height:1.5;color:var(--ink);}
+  .photo-meta{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+  .stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .stat{text-align:center;}
+  .stat .n{font-family:'Fraunces',serif;font-size:24px;font-weight:600;}
+  .stat .l{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  .item-title{font-weight:700;font-size:15px;}
+  .item-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:20px 0;}
+  .footer{text-align:center;font-size:12px;color:var(--ink-soft);margin-top:24px;}
+  .loading{text-align:center;padding:60px 0;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="loading">Loading the latest…</div></div>
+
+<script>
+const SUPABASE_URL = "https://dlfdefgqqmfvoygissak.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsZmRlZmdxcW1mdm95Z2lzc2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMDQxNDUsImV4cCI6MjA5ODY4MDE0NX0.bxsOoopi77wo1ttGx3GKUoxRxNWmUBU3VEf6uWGw2wg";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmtDate(d) {
+  if (!d) return "";
+  const dt = new Date(d + "T00:00:00");
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function ageString(dob) {
+  if (!dob) return "";
+  const birth = new Date(dob + "T00:00:00");
+  const now = new Date();
+  const days = Math.floor((now - birth) / 86400000);
+  if (days < 0) return "on the way";
+  if (days < 60) return `${Math.floor(days / 7)}w ${days % 7}d old`;
+  return `${Math.floor(days / 30.44)} months old`;
+}
+function minutesBetween(start, end) {
+  if (!start || !end) return null;
+  const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  let mins = toMin(end) - toMin(start);
+  if (mins < 0) mins += 24 * 60;
+  return mins;
+}
+function durLabel(mins) {
+  if (mins == null) return "";
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function render(data) {
+  if (!data) {
+    document.getElementById("root").innerHTML = '<div class="loading">Nothing to show yet.</div>';
+    return;
+  }
+  const profile = data.profile || {};
+  const today = todayStr();
+  const feedsToday = (data.nursing || []).filter((n) => n.date === today).length;
+  const diapersToday = (data.diapers || []).filter((d) => d.date === today).length;
+  const sleepMinToday = (data.sleep || []).filter((s) => s.date === today).reduce((s, e) => s + (minutesBetween(e.start, e.end) || 0), 0);
+
+  const lastPhoto = [...(data.journal || [])].filter((j) => j.photo).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  const lastMilestone = [...(data.milestones || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  const lastAdventure = [...(data.adventures || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+
+  let html = "";
+  html += `<div class="header"><div class="emoji">🐣</div><h1>${esc(profile.name || "Little Foot")}</h1><p>${esc(ageString(profile.dob))}</p></div>`;
+
+  html += `<div class="card"><h2>Today so far</h2><div class="stat-row">
+    <div class="stat"><div class="n">${feedsToday}</div><div class="l">Feeds</div></div>
+    <div class="stat"><div class="n">${(sleepMinToday / 60).toFixed(1)}h</div><div class="l">Sleep</div></div>
+    <div class="stat"><div class="n">${diapersToday}</div><div class="l">Diapers</div></div>
+  </div></div>`;
+
+  if (lastPhoto) {
+    html += `<div class="card"><h2>Latest photo</h2>
+      <img class="photo" src="${lastPhoto.photo}" alt="" />
+      ${lastPhoto.text ? `<div class="photo-caption">${esc(lastPhoto.text)}</div>` : ""}
+      <div class="photo-meta">${esc(fmtDate(lastPhoto.date))}</div>
+    </div>`;
+  }
+
+  if (lastMilestone) {
+    html += `<div class="card"><h2>⭐ Latest milestone</h2>
+      <div class="item-title">${esc(lastMilestone.title)}</div>
+      <div class="item-sub">${esc(fmtDate(lastMilestone.date))}</div>
+    </div>`;
+  }
+
+  if (lastAdventure) {
+    html += `<div class="card"><h2>🏔️ Latest adventure</h2>
+      <div class="item-title">${esc(lastAdventure.title)}${lastAdventure.location ? ` — ${esc(lastAdventure.location)}` : ""}</div>
+      <div class="item-sub">${esc(fmtDate(lastAdventure.date))}</div>
+    </div>`;
+  }
+
+  if (!lastPhoto && !lastMilestone && !lastAdventure) {
+    html += `<div class="card"><div class="empty">No updates posted yet — check back soon!</div></div>`;
+  }
+
+  html += `<div class="footer">Made with Little Foot · updated ${new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</div>`;
+
+  document.getElementById("root").innerHTML = html;
+}
+
+async function load() {
+  try {
+    const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
+    render(row && row.data);
+  } catch (e) {
+    document.getElementById("root").innerHTML = '<div class="loading">Couldn\'t load the update right now.</div>';
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
