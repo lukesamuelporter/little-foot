@@ -1205,7 +1205,7 @@ function PatternStrip({ sleep, nursing, diapers, pumping, activeSleep }) {
     }
   }
 
-  const labelW = 46, trackW = 300, rowH = 24, trackH = 11;
+  const labelW = 46, trackW = 300, rowH = 34, trackH = 11;
   const h = days.length * rowH + 16;
   const X = (min) => labelW + (min / 1440) * trackW;
   const dayLabel = (ds, i) => (i === 0 ? "Today" : new Date(ds + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" }));
@@ -1341,6 +1341,38 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
         )}
       </Card>
 
+      {/* Pumping */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🤱 Pumping</div>
+          <button className="link-btn" onClick={() => { setPumpInitial({ date: todayStr(), time: nowTime(), side: "Both" }); setSheet("pump-finish"); }}>Log past session</button>
+        </div>
+        {pumping ? (
+          <div className="row">
+            <div className="grow">
+              <div className="item-title">Pumping… {durLabel(Math.round((Date.now() - new Date(pumping.startedAt).getTime()) / 60000))}</div>
+              <div className="item-sub">Started {fmtTime(pumping.start)}</div>
+            </div>
+            <Btn variant="danger" onClick={finishPumping}>Stop</Btn>
+          </div>
+        ) : (
+          <Btn full onClick={() => onStartPumping("Both")}>▶ Start pumping</Btn>
+        )}
+      </Card>
+
+      {/* Diaper */}
+      <Card>
+        <div className="log-card-head">
+          <div className="item-title">🚼 Diaper</div>
+          <button className="link-btn" onClick={() => { setDiaperInitial({ date: todayStr(), time: nowTime() }); setSheet("diaper"); }}>Add with details</button>
+        </div>
+        <div className="quick-actions three">
+          <Btn variant="ghost" onClick={() => openDiaper("Wet")}>💧 Wet</Btn>
+          <Btn variant="ghost" onClick={() => openDiaper("Dirty")}>💩 Dirty</Btn>
+          <Btn variant="ghost" onClick={() => openDiaper("Both")}>💧💩 Both</Btn>
+        </div>
+      </Card>
+
       {/* Sleep */}
       <Card>
         <div className="log-card-head">
@@ -1370,38 +1402,6 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
             </div>
             <Btn full onClick={() => { onStartSleep(sleepType, minutesAgo); setMinutesAgo(0); }}>Start sleep</Btn>
           </>
-        )}
-      </Card>
-
-      {/* Diaper */}
-      <Card>
-        <div className="log-card-head">
-          <div className="item-title">🚼 Diaper</div>
-          <button className="link-btn" onClick={() => { setDiaperInitial({ date: todayStr(), time: nowTime() }); setSheet("diaper"); }}>Add with details</button>
-        </div>
-        <div className="quick-actions three">
-          <Btn variant="ghost" onClick={() => openDiaper("Wet")}>💧 Wet</Btn>
-          <Btn variant="ghost" onClick={() => openDiaper("Dirty")}>💩 Dirty</Btn>
-          <Btn variant="ghost" onClick={() => openDiaper("Both")}>💧💩 Both</Btn>
-        </div>
-      </Card>
-
-      {/* Pumping */}
-      <Card>
-        <div className="log-card-head">
-          <div className="item-title">🤱 Pumping</div>
-          <button className="link-btn" onClick={() => { setPumpInitial({ date: todayStr(), time: nowTime(), side: "Both" }); setSheet("pump-finish"); }}>Log past session</button>
-        </div>
-        {pumping ? (
-          <div className="row">
-            <div className="grow">
-              <div className="item-title">Pumping… {durLabel(Math.round((Date.now() - new Date(pumping.startedAt).getTime()) / 60000))}</div>
-              <div className="item-sub">Started {fmtTime(pumping.start)}</div>
-            </div>
-            <Btn variant="danger" onClick={finishPumping}>Stop</Btn>
-          </div>
-        ) : (
-          <Btn full onClick={() => onStartPumping("Both")}>▶ Start pumping</Btn>
         )}
       </Card>
 
