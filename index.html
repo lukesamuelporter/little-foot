@@ -316,6 +316,7 @@ const DEF = {
     expectedSleepHours: 14, expectedDiapers: 6, expectedFeeds: 8,
     carePlan: "Planning to breastfeed for 6 months.",
     googleCalendarId: "", scheduleReminderLeadMin: 15, timezone: "America/Los_Angeles",
+    updatedAt: null,
   },
   growth: [],
   health: [],
@@ -367,26 +368,60 @@ function deepMerge(def, loaded) {
 const LIST_KEYS = ["growth", "health", "nursing", "pumping", "solids", "sleep", "milestones", "adventures",
   "words", "journal", "diapers", "activities", "symptoms", "vaccines", "postpartum", "schedule", "learnings"];
 
+/* Union-merging additions is safe, but a plain union can only ever grow a list — it has no way to
+   represent "this id used to exist and was removed." Without this, deleting anything gets silently
+   undone the next time a save round-trips against a server copy that hasn't caught up yet. Marking
+   an id here for a couple of minutes after deleting it keeps the merge from re-adding it. */
+const recentlyDeleted = new Set();
+function markDeleted(id) {
+  recentlyDeleted.add(id);
+  setTimeout(() => recentlyDeleted.delete(id), 120000);
+}
+
 function mergeById(localArr, remoteArr) {
   const local = Array.isArray(localArr) ? localArr : [];
   const remote = Array.isArray(remoteArr) ? remoteArr : [];
   const localIds = new Set(local.map((x) => x && x.id));
-  const remoteOnly = remote.filter((x) => x && !localIds.has(x.id));
+  const remoteOnly = remote.filter((x) => x && !localIds.has(x.id) && !recentlyDeleted.has(x.id));
   return [...local, ...remoteOnly];
 }
 
-function mergeData(local, remote) {
+function mergeData(local, remote, opts = {}) {
   if (!remote || typeof remote !== "object") return local;
   const out = { ...local };
-  for (const k of LIST_KEYS) out[k] = mergeById(local[k], remote[k]);
-  out.prebirth = {
-    contractions: mergeById(local.prebirth?.contractions, remote.prebirth?.contractions),
-    checklist: mergeById(local.prebirth?.checklist, remote.prebirth?.checklist),
-  };
+  if (opts.remoteActiveWins) {
+    // Inbound: an update just arrived from the server (the other device's save, via realtime or
+    // resync). It's authoritative, so trust its lists wholesale — this is what lets a deletion
+    // made on the other device actually take effect here, instead of a union merge quietly
+    // re-adding it. Any local edit still mid-save isn't lost: it lives in the debounced persist()
+    // call's own closure and gets folded back in once that save completes.
+    for (const k of LIST_KEYS) out[k] = Array.isArray(remote[k]) ? remote[k] : local[k];
+    out.prebirth = {
+      contractions: Array.isArray(remote.prebirth?.contractions) ? remote.prebirth.contractions : local.prebirth?.contractions,
+      checklist: Array.isArray(remote.prebirth?.checklist) ? remote.prebirth.checklist : local.prebirth?.checklist,
+    };
+  } else {
+    // Outbound: this is our own save. Union in anything new from the server (an entry the other
+    // device added that we don't know about yet) but never resurrect something we just deleted.
+    for (const k of LIST_KEYS) out[k] = mergeById(local[k], remote[k]);
+    out.prebirth = {
+      contractions: mergeById(local.prebirth?.contractions, remote.prebirth?.contractions),
+      checklist: mergeById(local.prebirth?.checklist, remote.prebirth?.checklist),
+    };
+  }
   out.handoffNote = (remote.handoffNote?.updatedAt && (!local.handoffNote?.updatedAt || remote.handoffNote.updatedAt > local.handoffNote.updatedAt))
     ? remote.handoffNote : local.handoffNote;
+  out.profile = (remote.profile?.updatedAt && (!local.profile?.updatedAt || remote.profile.updatedAt > local.profile.updatedAt))
+    ? remote.profile : local.profile;
+  out.advisor = (remote.advisor?.lastRun && (!local.advisor?.lastRun || remote.advisor.lastRun > local.advisor.lastRun))
+    ? remote.advisor : local.advisor;
+  // Active timers (feeding/sleep/pumping/activity in progress) are single-owner state, and "null"
+  // is a real value here (someone just tapped Stop) — not a gap to fill from the other side. So
+  // instead of preferring whichever side is non-null, trust whichever side actually represents the
+  // latest action: our own outgoing save always trusts local (opts.remoteActiveWins unset), while
+  // an incoming realtime/resync update always trusts what the server just sent.
   for (const k of ["activeSleep", "activeFeeding", "activePumping", "activeActivity"]) {
-    out[k] = local[k] != null ? local[k] : remote[k];
+    out[k] = opts.remoteActiveWins ? remote[k] : local[k];
   }
   return out;
 }
@@ -880,13 +915,13 @@ function FieldInput({ field, value, onChange, allValues }) {
     );
   if (type === "amount") {
     const unitKey = field.unitKey || `${key}Unit`;
-    const unit = (allValues && allValues[unitKey]) || "oz";
+    const unit = (allValues && allValues[unitKey]) || "ml";
     return (
       <div className="amount-input">
         <input type="number" step="0.1" inputMode="decimal" value={value || ""} onChange={(e) => onChange(key, e.target.value)} placeholder="0" />
         <select value={unit} onChange={(e) => onChange(unitKey, e.target.value)}>
-          <option value="oz">oz</option>
           <option value="ml">ml</option>
+          <option value="oz">oz</option>
         </select>
       </div>
     );
@@ -2247,7 +2282,7 @@ function PreBirthScreen({ data, update }) {
         <ContractionScreen
           items={pb.contractions}
           onAdd={(c) => patch((p) => ({ ...p, contractions: [...p.contractions, c] }))}
-          onDelete={withConfirm((id) => patch((p) => ({ ...p, contractions: p.contractions.filter((x) => x.id !== id) })))}
+          onDelete={withConfirm((id) => { markDeleted(id); patch((p) => ({ ...p, contractions: p.contractions.filter((x) => x.id !== id) })); })}
         />
       )}
       {sub === "bag" && (
@@ -2255,7 +2290,7 @@ function PreBirthScreen({ data, update }) {
           items={pb.checklist}
           onAdd={(item) => patch((p) => ({ ...p, checklist: [...p.checklist, item] }))}
           onToggle={(id) => patch((p) => ({ ...p, checklist: p.checklist.map((x) => (x.id === id ? { ...x, checked: !x.checked } : x)) }))}
-          onDelete={withConfirm((id) => patch((p) => ({ ...p, checklist: p.checklist.filter((x) => x.id !== id) })))}
+          onDelete={withConfirm((id) => { markDeleted(id); patch((p) => ({ ...p, checklist: p.checklist.filter((x) => x.id !== id) })); })}
         />
       )}
     </div>
@@ -2852,7 +2887,7 @@ function HandoffNoteCard({ note, deviceParent, onSave }) {
     onSave({ text: text.trim(), by: deviceParent || note.by || "", updatedAt: new Date().toISOString() });
     setEditing(false);
   }
-  const clear = withConfirm(() => onSave({ text: "", by: "", updatedAt: null }));
+  const clear = withConfirm(() => onSave({ text: "", by: "", updatedAt: new Date().toISOString() }));
 
   return (
     <Card>
@@ -3203,9 +3238,16 @@ function App() {
     setSyncing(false);
   }
 
-  async function persist(next) {
+  async function persist(next, opts = {}) {
     if (!sb) return;
     try {
+      if (opts.replace) {
+        // Restoring a backup explicitly promises to replace everything, so skip the usual merge
+        // (which would otherwise union back in anything on the server that isn't in the backup).
+        await sb.from("baby_data").update({ data: next }).eq("id", 1);
+        setData(() => next);
+        return;
+      }
       // Re-read the server's current row and merge before writing, so a save from the other
       // device that landed after our last load doesn't get overwritten by this one.
       const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
@@ -3228,7 +3270,7 @@ function App() {
     const channel = sb
       .channel("baby_data_sync")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "baby_data", filter: "id=eq.1" }, (payload) => {
-        if (payload.new?.data) setData((prev) => mergeData(prev, payload.new.data));
+        if (payload.new?.data) setData((prev) => mergeData(prev, payload.new.data, { remoteActiveWins: true }));
       })
       .subscribe();
     return () => { sb.removeChannel(channel); };
@@ -3242,7 +3284,7 @@ function App() {
     async function resync() {
       try {
         const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
-        if (row?.data) setData((prev) => mergeData(prev, row.data));
+        if (row?.data) setData((prev) => mergeData(prev, row.data, { remoteActiveWins: true }));
       } catch (e) { /* ignore — next resync attempt will retry */ }
     }
     function onVisible() { if (document.visibilityState === "visible") resync(); }
@@ -3254,11 +3296,11 @@ function App() {
     };
   }, []);
 
-  function update(patch) {
+  function update(patch, opts) {
     setData((prev) => {
       const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
       clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => persist(next), 500);
+      saveTimer.current = setTimeout(() => persist(next, opts), 500);
       return next;
     });
   }
@@ -3268,7 +3310,7 @@ function App() {
     update((prev) => ({ ...prev, [key]: [...prev[key], stamped] }));
   };
   const updateIn = (key) => (item) => update((prev) => ({ ...prev, [key]: prev[key].map((x) => (x.id === item.id ? item : x)) }));
-  const deleteFrom = (key) => (id) => update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) }));
+  const deleteFrom = (key) => (id) => { markDeleted(id); update((prev) => ({ ...prev, [key]: prev[key].filter((x) => x.id !== id) })); };
   const delC = (key) => withConfirm(deleteFrom(key)); // confirmed deletes for UI buttons (toast Undo stays instant)
 
   // Milestones and adventures also drop a matching entry into the Journal automatically,
@@ -3342,7 +3384,7 @@ function App() {
     URL.revokeObjectURL(url);
   }
   function importBackup(parsed) {
-    update(() => deepMerge(DEF, parsed));
+    update(() => deepMerge(DEF, parsed), { replace: true });
     showToast("Backup restored");
   }
 
@@ -3462,7 +3504,7 @@ function App() {
         )}
         {view === "ask" && <GuideScreen data={data} update={update} onAddLearning={addTo("learnings")} onDeleteLearning={delC("learnings")} />}
         {view === "profile" && (
-          <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: p })}
+          <ProfileScreen profile={data.profile} onSave={(p) => update({ profile: { ...p, updatedAt: new Date().toISOString() } })}
             deviceParent={deviceParent} setDeviceParent={setDeviceParent}
             onExport={exportBackup} onImport={importBackup} />
         )}
