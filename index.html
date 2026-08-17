@@ -223,6 +223,10 @@
 
   .strip-legend{display:flex;gap:14px;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:6px;flex-wrap:wrap;}
   .strip-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+  .strip-legend .dot.square{border-radius:2px;}
+  .amount-input{display:flex;gap:8px;}
+  .amount-input input{flex:1;min-width:0;}
+  .amount-input select{width:64px;flex-shrink:0;}
 
   .side-btns.three{grid-template-columns:1fr 1fr 1fr;}
 
@@ -353,6 +357,40 @@ function deepMerge(def, loaded) {
   return out;
 }
 
+/* ---------- Multi-device merge ----------
+   baby_data is one JSON blob shared by every device. Two people can edit at once, so before we
+   ever overwrite it we merge our local copy with whatever is currently on the server instead of
+   blindly clobbering it — otherwise the second save wins and silently erases the first person's
+   entry. List fields are unioned by entry id (local edits win on a shared id, additions from
+   either side are always kept); handoffNote is resolved by its own updatedAt; everything else
+   prefers local but falls back to remote when local has nothing. */
+const LIST_KEYS = ["growth", "health", "nursing", "pumping", "solids", "sleep", "milestones", "adventures",
+  "words", "journal", "diapers", "activities", "symptoms", "vaccines", "postpartum", "schedule", "learnings"];
+
+function mergeById(localArr, remoteArr) {
+  const local = Array.isArray(localArr) ? localArr : [];
+  const remote = Array.isArray(remoteArr) ? remoteArr : [];
+  const localIds = new Set(local.map((x) => x && x.id));
+  const remoteOnly = remote.filter((x) => x && !localIds.has(x.id));
+  return [...local, ...remoteOnly];
+}
+
+function mergeData(local, remote) {
+  if (!remote || typeof remote !== "object") return local;
+  const out = { ...local };
+  for (const k of LIST_KEYS) out[k] = mergeById(local[k], remote[k]);
+  out.prebirth = {
+    contractions: mergeById(local.prebirth?.contractions, remote.prebirth?.contractions),
+    checklist: mergeById(local.prebirth?.checklist, remote.prebirth?.checklist),
+  };
+  out.handoffNote = (remote.handoffNote?.updatedAt && (!local.handoffNote?.updatedAt || remote.handoffNote.updatedAt > local.handoffNote.updatedAt))
+    ? remote.handoffNote : local.handoffNote;
+  for (const k of ["activeSleep", "activeFeeding", "activePumping", "activeActivity"]) {
+    out[k] = local[k] != null ? local[k] : remote[k];
+  }
+  return out;
+}
+
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 /* Local-timezone date helpers (toISOString would roll to tomorrow's date during evening hours) */
@@ -471,6 +509,14 @@ function withConfirm(fn) {
 const TYPE_EMOJI = { sleep: "\u{1F634}", feed: "\u{1F37C}", bath: "\u{1F6C1}", other: "\u{1F4CC}" };
 const typeEmoji = (t) => TYPE_EMOJI[t] || TYPE_EMOJI.other;
 
+/* Bottle/pump amounts can be logged in oz or ml — normalize to oz for averages and stats,
+   since that's the unit the rest of the app (reports, Guide) already displays. */
+function toOz(amount, unit) {
+  const n = parseFloat(amount);
+  if (isNaN(n)) return NaN;
+  return unit === "ml" ? n / 29.5735 : n;
+}
+
 /* Care averages over the last N days — shared by the doctor report and the Guide */
 function careStats(data, days) {
   const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - (days - 1));
@@ -479,7 +525,7 @@ function careStats(data, days) {
   const nursingFeeds = feeds.filter((f) => f.side !== "Bottle");
   const bottleFeeds = feeds.filter((f) => f.side === "Bottle");
   const durations = nursingFeeds.map((f) => parseInt(f.duration)).filter((d) => !isNaN(d));
-  const oz = bottleFeeds.map((f) => parseFloat(f.amount)).filter((x) => !isNaN(x));
+  const oz = bottleFeeds.map((f) => toOz(f.amount, f.amountUnit)).filter((x) => !isNaN(x));
   const sleeps = data.sleep.filter((s) => inRange(s.date));
   const sleepMins = sleeps.map((s) => minutesBetween(s.start, s.end)).filter((m) => m != null);
   const dias = data.diapers.filter((d) => inRange(d.date));
@@ -508,7 +554,7 @@ function careStatsBetween(data, from, to) {
   const nursingFeeds = feeds.filter((f) => f.side !== "Bottle");
   const bottleFeeds = feeds.filter((f) => f.side === "Bottle");
   const durations = nursingFeeds.map((f) => parseInt(f.duration)).filter((d) => !isNaN(d));
-  const oz = bottleFeeds.map((f) => parseFloat(f.amount)).filter((x) => !isNaN(x));
+  const oz = bottleFeeds.map((f) => toOz(f.amount, f.amountUnit)).filter((x) => !isNaN(x));
   const sleeps = data.sleep.filter((s) => inRange(s.date));
   const sleepMins = sleeps.map((s) => minutesBetween(s.start, s.end)).filter((m) => m != null);
   const dias = data.diapers.filter((d) => inRange(d.date));
@@ -819,7 +865,7 @@ function GroupedTimeline({ items, dateField = "date", timeField = "time", render
 }
 
 /* ---------- Generic field + form ---------- */
-function FieldInput({ field, value, onChange }) {
+function FieldInput({ field, value, onChange, allValues }) {
   const { key, type, options } = field;
   if (type === "textarea")
     return <textarea rows={3} value={value || ""} onChange={(e) => onChange(key, e.target.value)} />;
@@ -832,6 +878,19 @@ function FieldInput({ field, value, onChange }) {
         ))}
       </select>
     );
+  if (type === "amount") {
+    const unitKey = field.unitKey || `${key}Unit`;
+    const unit = (allValues && allValues[unitKey]) || "oz";
+    return (
+      <div className="amount-input">
+        <input type="number" step="0.1" inputMode="decimal" value={value || ""} onChange={(e) => onChange(key, e.target.value)} placeholder="0" />
+        <select value={unit} onChange={(e) => onChange(unitKey, e.target.value)}>
+          <option value="oz">oz</option>
+          <option value="ml">ml</option>
+        </select>
+      </div>
+    );
+  }
   return (
     <input
       type={type}
@@ -854,7 +913,7 @@ function EntryForm({ fields, initial, title, onCancel, onSave, onDelete }) {
         {fields.map((f) => (
           <label className="field" key={f.key}>
             <span>{f.label}{f.required ? " *" : ""}</span>
-            <FieldInput field={f} value={vals[f.key]} onChange={set} />
+            <FieldInput field={f} value={vals[f.key]} onChange={set} allValues={vals} />
           </label>
         ))}
       </div>
@@ -942,16 +1001,14 @@ const NURSING_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
   { key: "time", label: "Time", type: "time", required: true },
   { key: "duration", label: "Duration (min)", type: "number" },
-  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both", "Bottle"] },
-  { key: "amount", label: "Amount (oz — bottle feeds)", type: "number" },
+  { key: "amount", label: "Amount", type: "amount", unitKey: "amountUnit" },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
 const PUMPING_FIELDS = [
   { key: "date", label: "Date", type: "date", required: true },
   { key: "time", label: "Time", type: "time", required: true },
   { key: "duration", label: "Duration (min)", type: "number" },
-  { key: "side", label: "Side", type: "select", options: ["Left", "Right", "Both"] },
-  { key: "amount", label: "Amount pumped (oz)", type: "number" },
+  { key: "amount", label: "Amount pumped", type: "amount", unitKey: "amountUnit" },
   { key: "storage", label: "Storage", type: "select", options: ["Fed fresh", "Refrigerated", "Frozen"] },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
@@ -1093,7 +1150,7 @@ function StatusStrip({ data, setView }) {
       <button className={`status-chip ${feedTone}`} onClick={() => setView("log")}>
         🍼 {lastFeedDt ? <>
           <span>{agoLabel(lastFeedDt)}</span>
-          <span className="sc-sub">{lastFeed.side || ""}{lastFeed.by ? ` · ${lastFeed.by}` : ""}</span>
+          <span className="sc-sub">{lastFeed.amount ? `${lastFeed.amount} ${lastFeed.amountUnit || "oz"}` : ""}{lastFeed.by ? ` · ${lastFeed.by}` : ""}</span>
         </> : <span className="sc-sub">No feeds yet</span>}
       </button>
       <button className="status-chip" onClick={() => setView("log")}>
@@ -1113,7 +1170,7 @@ function StatusStrip({ data, setView }) {
 }
 
 /* ---------- 7-day pattern strip: sleep blocks, feed dots, diaper ticks on a 24h track ---------- */
-function PatternStrip({ sleep, nursing, diapers, activeSleep }) {
+function PatternStrip({ sleep, nursing, diapers, pumping, activeSleep }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i);
     return localDateStr(d);
@@ -1173,6 +1230,9 @@ function PatternStrip({ sleep, nursing, diapers, activeSleep }) {
               {nursing.filter((n) => n.date === ds && n.time).map((n, j) => (
                 <circle key={"f" + j} cx={X(toMin(n.time))} cy={mid} r={3} fill="var(--moss)" />
               ))}
+              {pumping.filter((p) => p.date === ds && p.time).map((p, j) => (
+                <rect key={"p" + j} x={X(toMin(p.time)) - 3} y={y + trackH + 3} width={6} height={6} rx={1} fill="var(--plum)" />
+              ))}
             </g>
           );
         })}
@@ -1186,6 +1246,7 @@ function PatternStrip({ sleep, nursing, diapers, activeSleep }) {
         <span><span className="dot" style={{ background: "var(--sky)" }} />Sleep</span>
         <span><span className="dot" style={{ background: "var(--moss)" }} />Feed</span>
         <span><span className="dot" style={{ background: "var(--marigold)" }} />Diaper</span>
+        <span><span className="dot square" style={{ background: "var(--plum)" }} />Pump</span>
       </div>
     </Card>
   );
@@ -1209,11 +1270,6 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
     return () => clearInterval(t);
   }, [data.activeFeeding, data.activeSleep, data.activePumping, data.activeActivity]);
 
-  const lastSideFeed = useMemo(
-    () => [...data.nursing].filter((n) => n.side === "Left" || n.side === "Right").sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0],
-    [data.nursing]
-  );
-  const nextSide = lastSideFeed?.side === "Left" ? "Right" : lastSideFeed?.side === "Right" ? "Left" : null;
   const active = data.activeFeeding;
   const asleep = data.activeSleep;
   const pumping = data.activePumping;
@@ -1267,24 +1323,19 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
       <Card>
         <div className="log-card-head">
           <div className="item-title">🍼 Feeding</div>
-          <button className="link-btn" onClick={() => { setFeedInitial({ date: todayStr(), time: nowTime() }); setSheet("feed"); }}>Log past feeding</button>
+          <button className="link-btn" onClick={() => { setFeedInitial({ date: todayStr(), time: nowTime(), side: "Bottle" }); setSheet("feed"); }}>Log past feeding</button>
         </div>
         {active ? (
           <div className="row">
             <div className="grow">
-              <div className="item-title">Feeding… {durLabel(Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000))} · {active.side}</div>
+              <div className="item-title">Feeding… {durLabel(Math.round((Date.now() - new Date(active.startedAt).getTime()) / 60000))}</div>
               <div className="item-sub">Started {fmtTime(active.start)}</div>
             </div>
             <Btn variant="danger" onClick={finishFeeding}>Stop</Btn>
           </div>
         ) : (
           <>
-            {nextSide && <div className="item-sub" style={{ marginBottom: 8 }}>Last side was {lastSideFeed.side} — try <strong>{nextSide}</strong> next.</div>}
-            <div className="side-btns three">
-              <button className="side-btn" style={nextSide === "Left" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Left")}>▶ Left</button>
-              <button className="side-btn" style={nextSide === "Right" ? { borderColor: "var(--marigold)", background: "#FBEAD3" } : null} onClick={() => onStartFeeding("Right")}>▶ Right</button>
-              <button className="side-btn" onClick={() => onStartFeeding("Bottle")}>🍼 Bottle</button>
-            </div>
+            <Btn full onClick={() => onStartFeeding("Bottle")}>▶ Start feeding</Btn>
             <button className="link-btn" style={{ marginTop: 9 }} onClick={() => setSheet("solid")}>+ Solid food</button>
           </>
         )}
@@ -1339,22 +1390,18 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
       <Card>
         <div className="log-card-head">
           <div className="item-title">🤱 Pumping</div>
-          <button className="link-btn" onClick={() => { setPumpInitial({ date: todayStr(), time: nowTime() }); setSheet("pump-finish"); }}>Log past session</button>
+          <button className="link-btn" onClick={() => { setPumpInitial({ date: todayStr(), time: nowTime(), side: "Both" }); setSheet("pump-finish"); }}>Log past session</button>
         </div>
         {pumping ? (
           <div className="row">
             <div className="grow">
-              <div className="item-title">Pumping… {durLabel(Math.round((Date.now() - new Date(pumping.startedAt).getTime()) / 60000))} · {pumping.side}</div>
+              <div className="item-title">Pumping… {durLabel(Math.round((Date.now() - new Date(pumping.startedAt).getTime()) / 60000))}</div>
               <div className="item-sub">Started {fmtTime(pumping.start)}</div>
             </div>
             <Btn variant="danger" onClick={finishPumping}>Stop</Btn>
           </div>
         ) : (
-          <div className="side-btns three">
-            <button className="side-btn" onClick={() => onStartPumping("Left")}>▶ Left</button>
-            <button className="side-btn" onClick={() => onStartPumping("Right")}>▶ Right</button>
-            <button className="side-btn" onClick={() => onStartPumping("Both")}>▶ Both</button>
-          </div>
+          <Btn full onClick={() => onStartPumping("Both")}>▶ Start pumping</Btn>
         )}
       </Card>
 
@@ -1389,7 +1436,7 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
 
       {sheet === "feed" && (
         <Sheet onClose={() => setSheet(null)}>
-          <EntryForm fields={NURSING_FIELDS} initial={feedInitial || { date: todayStr(), time: nowTime() }} title="Log feeding"
+          <EntryForm fields={NURSING_FIELDS} initial={feedInitial || { date: todayStr(), time: nowTime(), side: "Bottle" }} title="Log feeding"
             onCancel={() => setSheet(null)} onSave={(v) => { onAddNursing(v); setSheet(null); }} />
         </Sheet>
       )}
@@ -1413,7 +1460,7 @@ function LogScreen({ data, onStartFeeding, onStopFeeding, onAddNursing, onAddSol
       )}
       {sheet === "pump-finish" && (
         <Sheet onClose={() => setSheet(null)}>
-          <EntryForm fields={PUMPING_FIELDS} initial={pumpInitial || { date: todayStr(), time: nowTime() }} title="Log pumping session"
+          <EntryForm fields={PUMPING_FIELDS} initial={pumpInitial || { date: todayStr(), time: nowTime(), side: "Both" }} title="Log pumping session"
             onCancel={() => setSheet(null)} onSave={(v) => { onAddPumping(v); setSheet(null); }} />
         </Sheet>
       )}
@@ -1459,12 +1506,12 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
 
   const entryTitle = (e) => {
     const i = e.item;
-    if (e.kind === "feed") return i.side === "Bottle"
-      ? `🍼 Bottle${i.amount ? ` · ${i.amount} oz` : ""}${i.duration ? ` · ${i.duration}m` : ""}`
-      : `🍼 ${i.side || "Feeding"}${i.duration ? ` · ${i.duration}m` : ""}`;
+    if (e.kind === "feed") return (i.side && i.side !== "Bottle")
+      ? `🍼 ${i.side}${i.duration ? ` · ${i.duration}m` : ""}` // legacy breastfeeding entries
+      : `🍼 Bottle${i.amount ? ` · ${i.amount} ${i.amountUnit || "oz"}` : ""}${i.duration ? ` · ${i.duration}m` : ""}`;
     if (e.kind === "solid") return `🥣 ${i.food || "Solid food"}${i.reaction && i.reaction !== "None" ? ` — ${i.reaction}` : ""}`;
     if (e.kind === "sleep") return `${i.type === "Night" ? "🌙" : "😴"} ${i.type || "Sleep"} · ${fmtTime(i.start)}${i.end ? ` – ${fmtTime(i.end)}` : ""}`;
-    if (e.kind === "pump") return `🤱 ${i.side || "Pumping"}${i.amount ? ` · ${i.amount} oz` : ""}${i.duration ? ` · ${i.duration}m` : ""}`;
+    if (e.kind === "pump") return `🤱 Pumping${i.amount ? ` · ${i.amount} ${i.amountUnit || "oz"}` : ""}${i.duration ? ` · ${i.duration}m` : ""}`;
     if (e.kind === "activity") return `🧸 ${i.type || "Activity"}${i.duration ? ` · ${i.duration}m` : ""}`;
     return `${DIAPER_EMOJI[i.type] || "🚼"} ${i.type || "Diaper"}`;
   };
@@ -1502,7 +1549,7 @@ function HistoryScreen({ data, updateIn, deleteFrom }) {
   return (
     <div className="screen">
       <div className="screen-head"><h2>🕐 History</h2></div>
-      <PatternStrip sleep={data.sleep} nursing={data.nursing} diapers={data.diapers} activeSleep={data.activeSleep} />
+      <PatternStrip sleep={data.sleep} nursing={data.nursing} diapers={data.diapers} pumping={data.pumping} activeSleep={data.activeSleep} />
       <div className="chip-row" style={{ marginBottom: 12 }}>
         {[["all", "All"], ["feed", "🍼 Feeds"], ["sleep", "😴 Sleep"], ["diaper", "🚼 Diapers"], ["solid", "🥣 Solids"], ["pump", "🤱 Pumping"], ["activity", "🧸 Activities"]].map(([k, label]) => (
           <button key={k} className={filter === k ? "chip active" : "chip"} onClick={() => setFilter(k)}>{label}</button>
@@ -2985,7 +3032,7 @@ function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
     } else {
       lastFeedRange = fmtTime(lastFeed.time);
     }
-    lastFeedTrend = { dir: "flat", arrow: "", text: `${lastFeed.side || ""}${lastFeedDt ? ` · ${agoLabel(lastFeedDt)}` : ""}` };
+    lastFeedTrend = { dir: "flat", arrow: "", text: `${lastFeed.amount ? `${lastFeed.amount} ${lastFeed.amountUnit || "oz"}` : ""}${lastFeedDt ? ` · ${agoLabel(lastFeedDt)}` : ""}` };
   }
 
   // Last sleep: full start–end range (or "since X" if still asleep)
@@ -3003,7 +3050,7 @@ function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
   // Breast/bottle breakdown for today's feeds
   const breastCount = feedsToday.filter((f) => f.side !== "Bottle").length;
   const bottleCount = feedsToday.filter((f) => f.side === "Bottle").length;
-  const feedsSub = feedsToday.length ? `🤱 ${breastCount} · 🍼 ${bottleCount}` : null;
+  const feedsSub = feedsToday.length ? (breastCount ? `🤱 ${breastCount} · 🍼 ${bottleCount}` : `🍼 ${bottleCount}`) : null;
 
   // Wet/dirty/both breakdown for today's diapers
   const wetCount = diapersToday.filter((d) => d.type === "Wet").length;
@@ -3159,13 +3206,53 @@ function App() {
   async function persist(next) {
     if (!sb) return;
     try {
-      await sb.from("baby_data").update({ data: next }).eq("id", 1);
+      // Re-read the server's current row and merge before writing, so a save from the other
+      // device that landed after our last load doesn't get overwritten by this one.
+      const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
+      const merged = mergeData(next, row?.data);
+      await sb.from("baby_data").update({ data: merged }).eq("id", 1);
+      // Fold anything the merge picked up (e.g. an entry the other device added) back into local
+      // state, without discarding whatever the user may have typed in the meantime.
+      setData((prev) => mergeData(prev, merged));
     } catch (e) {
       console.error("Save failed", e);
     }
   }
 
   useEffect(() => { load(); }, []);
+
+  // Live sync: when the other device saves, Supabase Realtime pushes the new row here so it shows
+  // up without reopening the app. Requires Realtime to be enabled on the baby_data table in Supabase.
+  useEffect(() => {
+    if (!sb) return;
+    const channel = sb
+      .channel("baby_data_sync")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "baby_data", filter: "id=eq.1" }, (payload) => {
+        if (payload.new?.data) setData((prev) => mergeData(prev, payload.new.data));
+      })
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, []);
+
+  // Fallback for when the realtime socket drops (common when a mobile browser backgrounds the
+  // PWA): re-pull and merge as soon as the app is foregrounded again, instead of waiting for the
+  // next edit.
+  useEffect(() => {
+    if (!sb) return;
+    async function resync() {
+      try {
+        const { data: row } = await sb.from("baby_data").select("data").eq("id", 1).single();
+        if (row?.data) setData((prev) => mergeData(prev, row.data));
+      } catch (e) { /* ignore — next resync attempt will retry */ }
+    }
+    function onVisible() { if (document.visibilityState === "visible") resync(); }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
 
   function update(patch) {
     setData((prev) => {
