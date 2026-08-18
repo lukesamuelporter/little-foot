@@ -3016,7 +3016,7 @@ function OnThisDayCard({ data, setView }) {
 }
 
 function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
-  const { profile, nursing, diapers, journal, activeSleep, sleep } = data;
+  const { profile, nursing, diapers, journal, activeSleep, sleep, pumping, activePumping } = data;
   const lastJournal = [...journal].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
 
   const today = todayStr();
@@ -3070,6 +3070,24 @@ function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
     lastFeedTrend = { dir: "flat", arrow: "", text: `${lastFeed.amount ? `${lastFeed.amount} ${lastFeed.amountUnit || "oz"}` : ""}${lastFeedDt ? ` · ${agoLabel(lastFeedDt)}` : ""}` };
   }
 
+  // Last pump: full start–end range, plus amount and how long ago (or "pumping now" if active)
+  const lastPump = [...pumping].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
+  let lastPumpRange = "—", lastPumpTrend = null;
+  if (activePumping) {
+    lastPumpRange = `${fmtTime(activePumping.start)}–now`;
+    lastPumpTrend = { dir: "flat", arrow: "", text: `pumping · ${durLabel(Math.round((Date.now() - new Date(activePumping.startedAt).getTime()) / 60000))}` };
+  } else if (lastPump) {
+    if (lastPump.duration) {
+      const endMin = toMin(lastPump.time) + parseInt(lastPump.duration);
+      const endTimeStr = `${String(Math.floor(endMin / 60) % 24).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+      lastPumpRange = `${fmtTime(lastPump.time)}–${fmtTime(endTimeStr)}`;
+    } else {
+      lastPumpRange = fmtTime(lastPump.time);
+    }
+    const lastPumpDt = dtFrom(lastPump.date, lastPump.time);
+    lastPumpTrend = { dir: "flat", arrow: "", text: `${lastPump.amount ? `${lastPump.amount} ${lastPump.amountUnit || "oz"}` : ""}${lastPumpDt ? ` · ${agoLabel(lastPumpDt)}` : ""}` };
+  }
+
   // Last sleep: full start–end range (or "since X" if still asleep)
   const lastSleepEntry = [...sleep].sort((a, b) => `${b.date} ${b.start}`.localeCompare(`${a.date} ${a.start}`))[0];
   let lastSleepRange = "—", lastSleepTrend = null;
@@ -3121,6 +3139,7 @@ function TodayScreen({ data, token, setView, deviceParent, onSaveHandoff }) {
         <MetricCard label="😴 Sleep" value={sleepHrToday.toFixed(1)} unit="h" trend={trend(sleepHrToday, sleepAvg, "h")} spark={sleepSeries} color="var(--sky)" onClick={() => setView("log")} />
         <MetricCard label="🚼 Diapers" value={diapersToday.length} trend={trend(diapersToday.length, diaperAvg, "")} sub={diapersSub} spark={diaperSeries} color="var(--marigold)" onClick={() => setView("log")} />
         <MetricCard label="⏱️ Last feed" value={lastFeedRange} trend={lastFeedTrend} color="var(--plum)" onClick={() => setView("log")} />
+        <MetricCard label="🤱 Last pump" value={lastPumpRange} trend={lastPumpTrend} color="var(--plum)" onClick={() => setView("log")} />
         <MetricCard label="🌙 Last sleep" value={lastSleepRange} trend={lastSleepTrend} color="var(--sky)" onClick={() => setView("log")} />
       </div>
 
